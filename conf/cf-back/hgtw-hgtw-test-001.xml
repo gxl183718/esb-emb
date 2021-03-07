@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+      xmlns:ws="http://www.mulesoft.org/schema/mule/ws"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans
+      http://www.springframework.org/schema/beans/spring-beans-current.xsd
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+                                 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd                           http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd                           http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd                           http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+  <http:listener-config name="httpListenerConfig" host="0.0.0.0" port="10086" doc:name="HTTP Listener Configuration" />
+  <ws:consumer-config name="wsConf" service="WBTestInterfaceImplService" port="WBTestInterfaceImplPort" serviceAddress="http://localhost:8088/cxf/webServices" wsdlLocation="http://localhost:8088/cxf/webServices?wsdl" doc:name="Web Service Consumer" />
+  <flow name="flow0">
+    <http:listener config-ref="httpListenerConfig" path="/hehe" doc:name="http" allowedMethods="get" />
+    <set-payload value="&lt;gg&gt;&lt;/gg&gt;" doc:name="Set Payload" />
+<!--    <mulexml:xslt-transformer returnClass="java.lang.String" xsl-file="conf/xslt/hgtw-test-001-flow-0.xslt" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="XSLT">-->
+<!--      <mulexml:context-property key="a" value="#[message.inboundProperties.'http.query.params'.a]" />-->
+<!--    </mulexml:xslt-transformer>-->
+<!--    <ws:consumer config-ref="wsConf" operation="sayGodBye" doc:name="Web Service Consumer" />-->
+<!--    <json:xml-to-json-transformer doc:name="XML to JSON" />-->
+  </flow>
+</mule>
+

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:oauth2="http://www.mulesoft.org/schema/mule/oauth2" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/oauth2 http://www.mulesoft.org/schema/mule/oauth2/current/mule-oauth2.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+  <http:listener-config name="dbProxy-0001-listener-conf" host="0.0.0.0" port="10099" doc:name="dbProxy-0001-listener-conf" />
+  <db:generic-config name="dbProxy-0001-db-conf" url="jdbc:oscar://172.20.20.228:2003/OSRDB?user=SHSYJQZK&amp;password=Ntdh@123&amp;characterEncoding=UTF-8" driverClassName="com.oscar.Driver" doc:name="dbProxy-0001-db-conf" />
+  <!--	<flow name="testceFlow">-->
+  <!--		<http:listener config-ref="HTTP_Listener_Configuration" path="/" doc:name="HTTP"/>-->
+  <!--		<db:select config-ref="Generic_Database_Configuration" doc:name="Database">-->
+  <!--			<db:parameterized-query><![CDATA[select * from t_cust_contact]]></db:parameterized-query>-->
+  <!--		</db:select>-->
+  <!--		<json:object-to-json-transformer doc:name="Object to JSON"/>-->
+  <!--	</flow>-->
+  <flow name="flow-0">
+    <http:listener config-ref="dbProxy-0001-listener-conf" path="/select" allowedMethods="get" http:name="HTTP" />
+    <db:select config-ref="dbProxy-0001-db-conf" doc:name="database">
+      <db:dynamic-query><![CDATA[select * from test where a > 1]]></db:dynamic-query>
+    </db:select>
+    <json:object-to-json-transformer json:name="Object to JSON" />
+    <set-payload value="{status: true, data: [#[payload]], msg: &quot;获取信息成功&quot;}" doc:name="Set Payload" />
+    <json:object-to-json-transformer doc:name="Object to JSON" />
+    <catch-exception-strategy doc:name="Catch Exception Strategy">
+      <set-payload value="{status: false, data: [], msg: &quot;错误&quot;}" doc:name="Set Payload" />
+      <json:object-to-json-transformer doc:name="Object to JSON" />
+    </catch-exception-strategy>
+  </flow>
+</mule>
+

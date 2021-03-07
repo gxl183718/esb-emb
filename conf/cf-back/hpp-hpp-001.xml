@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd                           http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd                           http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd                           http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd                           http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd                           http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+  <http:listener-config name="hpp-001-in" host="localhost" port="20099" doc:name="hpp-001-conf-in" />
+  <http:request-config name="hpp-001-out" host="localhost" port="10012" doc:name="hpp-001-conf-out" />
+  <!--    <flow name="http2cxfFlow1">-->
+  <!--        <http:listener config-ref="http-in" path="/test/a/*" doc:name="HTTP" allowedMethods="POST"/>-->
+  <!--        <http:request config-ref="http-out" path="/test/haha/*" doc:name="HTTP" method="POST">-->
+  <!--            <http:request-builder>-->
+  <!--                <http:query-params expression="message.inboundProperties.'http.query.params'"/>-->
+  <!--            </http:request-builder>-->
+  <!--        </http:request>-->
+  <!--    </flow>-->
+  <!--    <flow name="http2cxfFlow2">-->
+  <!--        <http:listener config-ref="http-in" path="/test/b" doc:name="HTTP" allowedMethods="GET"/>-->
+  <!--        <http:request config-ref="http-out" path="/test/gaga" doc:name="HTTP" method="GET">-->
+  <!--            <http:request-builder>-->
+  <!--                <http:query-params expression="message.inboundProperties.'http.query.params'"/>-->
+  <!--            </http:request-builder>-->
+  <!--        </http:request>-->
+  <!--    </flow>-->
+  <flow name="flow-f1">
+    <http:listener config-ref="hpp-001-in" path="/haha/*" http:name="HTTP" />
+    <http:request config-ref="hpp-001-out" path="/test/haha#[message.inboundProperties['http.request.path'].substring(message.inboundProperties['http.listener.path'].length()-2)]" http:name="HTTP" method="#[message.inboundProperties['http.method']]">
+      <http:request-builder>
+        <http:query-params expression="message.inboundProperties.'http.query.params'" />
+      </http:request-builder>
+    </http:request>
+  </flow>
+  <flow name="flow-f2">
+    <http:listener config-ref="hpp-001-in" path="/hehe/*" http:name="HTTP" />
+    <http:request config-ref="hpp-001-out" path="/test/hehe#[message.inboundProperties['http.request.path'].substring(message.inboundProperties['http.listener.path'].length()-2)]" http:name="HTTP" method="#[message.inboundProperties['http.method']]">
+      <http:request-builder>
+        <http:query-params expression="message.inboundProperties.'http.query.params'" />
+      </http:request-builder>
+    </http:request>
+  </flow>
+</mule>
+

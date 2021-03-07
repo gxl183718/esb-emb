@@ -1,0 +1,95 @@
+apply plugin: "java"
+apply plugin: "application"
+//apply plugin: "build-announcements"
+
+repositories {
+	mavenCentral()
+}
+
+group = "com.redpill"
+archivesBaseName = "muesb-nt"
+version = 2.0
+description = "esb server"
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+
+//mainClassName = "com.redpill.MicroserviceMuleApp"
+
+//plugins {
+//	id 'java'
+//	id 'application'
+//	id 'org.jetbrains.kotlin.jvm' version '1.3.72'
+//	id "org.jetbrains.kotlin.kapt" version "1.3.72"
+//	// 就是这个插件
+//	id "com.github.johnrengelman.shadow" version "5.2.0"
+//}
+
+//Capsule plugin to include all Mule specific directories.
+//sourceSets.main.resources {
+//	srcDir "src/main/groovy"
+//	srcDir "src/main/app"
+//	srcDir "src/main/api"
+//}
+
+dependencies {
+//    compile 'org.springframework:spring-context:5.0.5.RELEASE'
+    compile fileTree(dir: "mlib", include: "*.jar")
+	compile 'org.jdom:jdom:1.1.3'
+	// https://mvnrepository.com/artifact/net.sf.json-lib/json-lib
+	compile group: 'com.alibaba', name: 'fastjson', version: '1.2.75'
+	compile "org.json:json:20180813"
+	compile("redis.clients:jedis:3.3.0")
+	compile group: 'com.rabbitmq', name: 'amqp-client', version: '5.9.0'
+	compile 'commons-io:commons-io:2.6'
+
+	compileOnly('org.projectlombok:lombok:1.18.8')
+	annotationProcessor 'org.projectlombok:lombok:1.18.8'
+
+	// https://mvnrepository.com/artifact/mysql/mysql-connector-java
+//	compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.21'
+// https://mvnrepository.com/artifact/com.microsoft.sqlserver/sqljdbc4
+//	compile group: 'com.microsoft.sqlserver', name: 'sqljdbc4', version: '4.0'
+
+
+// https://mvnrepository.com/artifact/com.dameng/Dm7JdbcDriver17
+//	compile group: 'com.dameng', name: 'Dm7JdbcDriver17', version: '7.6.0.165'
+
+
+//	compile group: 'com.ibm.db2', name: 'jcc', version: '11.5.4.0'
+//	// https://mvnrepository.com/artifact/com.ibm.db2.jcc/db2jcc4
+//	testCompile group: 'com.ibm.db2.jcc', name: 'db2jcc4', version: '10.1'
+//	// https://mvnrepository.com/artifact/com.ibm.db2/db2jcc_license_cu
+//	compile group: 'com.ibm.db2', name: 'db2jcc_license_cu', version: '9.7'
+
+
+
+
+
+}
+jar {
+//	from {
+//		//添加依懒到打包文件
+//		configurations.runtime.collect { zipTree(it) }
+//	}
+
+	manifest {
+//		attributes 'Main-Class': 'com.redpill.server.AnaTask'
+		attributes 'Main-Class': 'com.redpill.server.EsbServer'
+		attributes "Class-Path": configurations.compile.collect { "mlib/${it.name}" }.join(' ')
+	}
+
+	zip64=true
+}
+
+task"create-dirs" {
+	sourceSets*.java.srcDirs*.each {
+		it.mkdirs()
+	}
+	sourceSets*.resources.srcDirs*.each{
+		it.mkdirs()
+	}
+}
+
+

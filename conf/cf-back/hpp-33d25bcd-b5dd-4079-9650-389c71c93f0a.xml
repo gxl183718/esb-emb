@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:ws="http://www.mulesoft.org/schema/mule/ws"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd   http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd                           http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd                           http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd                           http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd                           http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+  <http:listener-config name="33d25bcd-b5dd-4079-9650-389c71c93f0a-in" host="0.0.0.0" port="10332" doc:name="33d25bcd-b5dd-4079-9650-389c71c93f0a-conf-in" />
+  <http:request-config name="33d25bcd-b5dd-4079-9650-389c71c93f0a-out" host="172.20.20.217" port="10012" doc:name="33d25bcd-b5dd-4079-9650-389c71c93f0a-conf-out" />
+  <flow name="flow-flow-0">
+    <http:listener config-ref="33d25bcd-b5dd-4079-9650-389c71c93f0a-in" path="/listLog/*" http:name="HTTP" />
+    <http:request config-ref="33d25bcd-b5dd-4079-9650-389c71c93f0a-out" path="/enviproapi/v1.0/BaseInfo/warnLogAllList#[message.inboundProperties['http.request.path'].substring(message.inboundProperties['http.listener.path'].length()-2)]" http:name="HTTP" method="#[message.inboundProperties['http.method']]">
+      <http:request-builder>
+        <http:query-params expression="message.inboundProperties.'http.query.params'" />
+      </http:request-builder>
+    </http:request>
+  </flow>
+</mule>
+

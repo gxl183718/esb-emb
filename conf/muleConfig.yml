@@ -1,0 +1,29 @@
+logLevel: 5
+dataPath: conf/
+
+rabbitMqUsername: admin
+rabbitMqPassword: Ntdh@123
+rabbitMqHostName: 172.20.20.221
+rabbitMqPort: 5672
+rabbitMqQueueName: DataExchange.EsbQueue
+
+redisUrl:
+  - 172.20.20.175:6379
+  - 172.20.20.176:6379
+  - 172.20.20.177:6379
+  - 172.20.20.178:6379
+  - 172.20.20.179:6379
+  - 172.20.20.180:6379
+
+redisMaster: mymaster
+redisMode: 2
+redisDb: 0
+redisPass: Ntdh@123
+
+taskInfo: task_info
+
+muleMonitor: mule.monitor.
+eventTotal: event.total
+hostIp: 127.0.0.1
+remoteIp: 127.0.0.2
+monitorSch: 600000

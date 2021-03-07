@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+      xmlns:ws="http://www.mulesoft.org/schema/mule/ws"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans
+      http://www.springframework.org/schema/beans/spring-beans-current.xsd
+      http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+                                 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd                           http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd                           http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd                           http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+  <http:listener-config name="e0281f3f-5e2b-4944-9a84-733348d5fb16-http-conf" host="0.0.0.0" port="8042" doc:name="HTTP Listener Configuration" />
+  <ws:consumer-config name="e0281f3f-5e2b-4944-9a84-733348d5fb16-ws-conf" service="WebService1" port="WebService1Soap" serviceAddress="http://172.20.20.220:9003/WebService1.asmx" wsdlLocation="http://172.20.20.220:9003/WebService1.asmx?wsdl" doc:name="Web Service Consumer" />
+  <flow name="e0281f3f-5e2b-4944-9a84-733348d5fb16-flow-0">
+    <http:listener config-ref="e0281f3f-5e2b-4944-9a84-733348d5fb16-http-conf" path="/log/GetWaterList" doc:name="http" allowedMethods="get" />
+    <set-payload value="&lt;gg&gt;&lt;/gg&gt;" doc:name="Set Payload" />
+    <mulexml:xslt-transformer  returnClass="java.lang.String" xsl-file="conf/xslt/htwXslt-e0281f3f-5e2b-4944-9a84-733348d5fb16-flow-0.xslt" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="XSLT">
+      <mulexml:context-property key="BLOWDOWN_MODE" value="#[message.inboundProperties.'http.query.params'.BLOWDOWN_MODE]" />
+    </mulexml:xslt-transformer>
+    <ws:consumer config-ref="e0281f3f-5e2b-4944-9a84-733348d5fb16-ws-conf" operation="GetWaterList" doc:name="Web Service Consumer" />
+<!--    <json:xml-to-json-transformer doc:name="XML to JSON" />-->
+  </flow>
+</mule>
+

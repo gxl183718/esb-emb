@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:management="http://www.mulesoft.org/schema/mule/management"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core
+        http://www.mulesoft.org/schema/mule/core/3.1/mule.xsd
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+        http://www.mulesoft.org/schema/mule/http
+        http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/management
+        http://www.mulesoft.org/schema/mule/management/3.1/mule-management.xsd">
+
+  <custom-agent name="jolokia-agent" class="org.jolokia.mule.JolokiaMuleAgent">
+    <spring:property name="port" value="8899"/>
+  </custom-agent>
+    <management:jmx-server>
+      <management:connector-server url="service:jmx:rmi:///jndi/rmi://localhost:7099/mule" rebind="true" />
+    </management:jmx-server>
+
+</mule>
+

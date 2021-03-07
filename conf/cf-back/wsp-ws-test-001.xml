@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:pattern="http://www.mulesoft.org/schema/mule/pattern" xmlns:apikit-soap="http://www.mulesoft.org/schema/mule/apikit-soap" xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:jersey="http://www.mulesoft.org/schema/mule/jersey" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/pattern http://www.mulesoft.org/schema/mule/pattern/current/mule-pattern.xsd         http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd         http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd         http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd         http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd         http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd         http://www.mulesoft.org/schema/mule/jersey http://www.mulesoft.org/schema/mule/jersey/current/mule-jersey.xsd         http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd         http://www.mulesoft.org/schema/mule/apikit-soap http://www.mulesoft.org/schema/mule/apikit-soap/current/mule-apikit-soap.xsd">
+<!--  <pattern:web-service-proxy inboundAddress="http://127.0.0.1:8101/ws"-->
+<!--                             outboundAddress="http://localhost:8088/cxf/webServices"-->
+<!--                             wsdlLocation="http://localhost:8088/cxf/webServices?wsdl"-->
+<!--                             name="ws-proxy-ws-test-001-01" />-->
+
+  <pattern:web-service-proxy inboundAddress="http://0.0.0.0:8888/ws"
+                             outboundAddress="http://localhost:8088/cxf/webServices"
+                             wsdlLocation="http://localhost:8088/cxf/webServices?wsdl"
+                             name="ws-proxy-ws-test-001-02" />
+
+
+</mule>
+

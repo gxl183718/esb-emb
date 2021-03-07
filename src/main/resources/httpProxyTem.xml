@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:pattern="http://www.mulesoft.org/schema/mule/pattern"
+      xmlns:apikit-soap="http://www.mulesoft.org/schema/mule/apikit-soap"
+      xmlns:mongo="http://www.mulesoft.org/schema/mule/mongo"
+      xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf"
+      xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+      xmlns:jersey="http://www.mulesoft.org/schema/mule/jersey"
+      xmlns:ws="http://www.mulesoft.org/schema/mule/ws"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:spring="http://www.springframework.org/schema/beans"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/pattern http://www.mulesoft.org/schema/mule/pattern/current/mule-pattern.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jersey http://www.mulesoft.org/schema/mule/jersey/current/mule-jersey.xsd
+http://www.mulesoft.org/schema/mule/mongo http://www.mulesoft.org/schema/mule/mongo/current/mule-mongo.xsd
+http://www.mulesoft.org/schema/mule/apikit-soap http://www.mulesoft.org/schema/mule/apikit-soap/current/mule-apikit-soap.xsd">
+    <http:listener-config name="http-in" host="0.0.0.0" port="10001"  doc:name="HTTP Listener Configuration"/>
+    <http:request-config name="http-out" host="127.0.0.1" port="10012"  doc:name="HTTP Request Configuration"/>
+
+    <flow name="proxy" doc:name="HTTP Proxy" doc:description="Proxy flow will forward all incoming requests on port 8081 to localhost:8888.">
+        <http:listener path="/*" config-ref="http-in" />
+        <http:request config-ref="http-out" method="#[message.inboundProperties['http.method']]"
+                      path="#[message.inboundProperties['http.request.path'].substring(message.inboundProperties['http.listener.path'].length()-2)]" parseResponse="false">
+            <http:request-builder>
+                <http:query-params expression="#[message.inboundProperties['http.query.params']]"/>
+            </http:request-builder>
+            <http:success-status-code-validator values="0..599" />
+        </http:request>
+    </flow>
+
+</mule>
