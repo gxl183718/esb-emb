@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:spring="http://www.springframework.org/schema/beans" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+    <cxf:configuration name="CXF_Configuration" enableMuleSoapHeaders="true" initializeStaticBusInstance="true" doc:name="CXF Configuration"/>
+    <flow name="testmuleproxywsFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/mulewsps" allowedMethods="POST,GET" doc:name="HTTP"/>
+        <cxf:proxy-service   wsdlLocation="d:\myAPI.wsdl" doc:name="CXF"  service="WBTestInterfaceImplService"
+                             payload="body" mtomEnabled="true" port="wodeservicePort" soapVersion="1.2" namespace="http://www.test.com">
+            <cxf:outFaultInterceptors/>
+        </cxf:proxy-service>
+        <set-variable variableName="varOperation" value="#[flowVars.cxf_operation.localPart]" doc:name="CXFOperationVariable"/>
+        <logger message="#['CXF Operation That Is Being Called : ' + flowVars.varOperation]" level="INFO" doc:name="Logger"/>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <logger message="# [payload]" level="INFO" doc:name="Logger"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.varOperation == 'getByTwo']">
+                <set-payload value="&lt;soap:Envelope xmlns:soap=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot;&gt;
+   &lt;soap:Body&gt;
+      &lt;test:getByTwo xmlns:test=&quot;http://www.test.com&quot;&gt;
+         &lt;!--Optional:--&gt;
+         &lt;one&gt;222&lt;/one&gt;
+         &lt;!--Optional:--&gt;
+         &lt;two&gt;22&lt;/two&gt;
+      &lt;/test:getByTwo&gt;
+   &lt;/soap:Body&gt;
+&lt;/soap:Envelope&gt;" doc:name="Set Payload" />
+            </when>
+            <when expression="#[flowVars.varOperation == 'getByZero']">
+                <set-payload value="&lt;soap:Envelope xmlns:soap=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot;&gt;
+   &lt;soap:Body&gt;
+      &lt;test:getByZero xmlns:test=&quot;http://www.test.com&quot;/&gt;
+   &lt;/soap:Body&gt;
+&lt;/soap:Envelope&gt;" doc:name="Set Payload" />
+            </when>
+            <otherwise>
+                <set-payload value="&lt;soap:Envelope xmlns:soap=&quot;http://schemas.xmlsoap.org/soap/envelope/&quot;&gt;
+   &lt;soap:Body&gt;
+      &lt;test:getByOne xmlns:test=&quot;http://www.test.com&quot;&gt;
+         &lt;!--Optional:--&gt;
+         &lt;one&gt;11111111111111&lt;/one&gt;
+      &lt;/test:getByOne&gt;
+   &lt;/soap:Body&gt;
+&lt;/soap:Envelope&gt;" doc:name="Set Payload" />
+            </otherwise>
+        </choice>
+    </flow>
+</mule>
