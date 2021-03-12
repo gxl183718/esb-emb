@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsp="http://www.w3.org/ns/ws-policy" xmlns:wsp1_2="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://redpill.default" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://redpill.default" name="redpillService">
+  <types>
+    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0" targetNamespace="http://redpill.default">
+      <xs:element type="tns:FuncOne" name="FuncOne" />
+      <xs:element type="tns:FuncOneResponse" name="FuncOneResponse" />
+      <xs:complexType name="FuncOne">
+        <xs:sequence>
+          <xs:element name="params" type="xs:string" minOccurs="0" />
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="FuncOneResponse">
+        <xs:sequence>
+          <xs:element name="result" type="xs:string" minOccurs="0" />
+        </xs:sequence>
+      </xs:complexType>
+      <xs:element type="tns:FuncTwo" name="FuncTwo" />
+      <xs:element type="tns:FuncTwoResponse" name="FuncTwoResponse" />
+      <xs:complexType name="FuncTwo">
+        <xs:sequence>
+          <xs:element name="params" type="xs:string" minOccurs="0" />
+        </xs:sequence>
+      </xs:complexType>
+      <xs:complexType name="FuncTwoResponse">
+        <xs:sequence>
+          <xs:element name="result" type="xs:string" minOccurs="0" />
+        </xs:sequence>
+      </xs:complexType>
+    </xs:schema>
+  </types>
+  <portType name="redpill">
+    <operation name="FuncOne">
+      <input wsam:Action="http://redpill.default/redpill/FuncOneRequest" message="tns:FuncOne" />
+      <output wsam:Action="http://redpill.default/redpill/FuncOneResponse" message="tns:FuncOneResponse" />
+    </operation>
+    <operation name="FuncTwo">
+      <input wsam:Action="http://redpill.default/redpill/FuncTwoRequest" message="tns:FuncTwo" />
+      <output wsam:Action="http://redpill.default/redpill/FuncTwoResponse" message="tns:FuncTwoResponse" />
+    </operation>
+  </portType>
+  <binding name="redpillPortBinding" type="tns:redpill">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document" />
+    <operation name="FuncOne">
+      <soap:operation soapAction="" />
+      <input>
+        <soap:body use="literal" />
+      </input>
+      <output>
+        <soap:body use="literal" />
+      </output>
+    </operation>
+    <operation name="FuncTwo">
+      <soap:operation soapAction="" />
+      <input>
+        <soap:body use="literal" />
+      </input>
+      <output>
+        <soap:body use="literal" />
+      </output>
+    </operation>
+  </binding>
+  <service name="redpillService">
+    <port name="redpillPort" binding="tns:redpillPortBinding">
+      <soap:address location="localhost:8080/mule" />
+    </port>
+  </service>
+  <message name="FuncOne">
+    <part name="parameters" element="tns:FuncOne" />
+  </message>
+  <message name="FuncOneResponse">
+    <part name="parameters" element="tns:FuncOneResponse" />
+  </message>
+  <message name="FuncTwo">
+    <part name="parameters" element="tns:FuncTwo" />
+  </message>
+  <message name="FuncTwoResponse">
+    <part name="parameters" element="tns:FuncTwoResponse" />
+  </message>
+</definitions>
+
