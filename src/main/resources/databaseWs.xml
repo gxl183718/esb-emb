@@ -20,7 +20,7 @@
 	<cxf:configuration name="CXF_Configuration" enableMuleSoapHeaders="true" initializeStaticBusInstance="true" doc:name="CXF Configuration"/>
 	<db:generic-config name="dbProxy-0001-db-conf" url="jdbc:highgo://172.20.20.226:5866/highgo?user=sysdba&amp;password=Ntdh@123456" driverClassName="com.highgo.jdbc.Driver" doc:name="Generic Database Configuration"/>
 	<flow name="testmuleproxywsFlow">
-		<http:listener config-ref="HTTP_Listener_Configuration" path="TODO" allowedMethods="POST" doc:name="HTTP"/>
+		<http:listener config-ref="HTTP_Listener_Configuration" path="TODO" allowedMethods="POST,GET" doc:name="HTTP"/>
 		<cxf:proxy-service   wsdlLocation="TODO" doc:name="CXF"  service="TODO"
 							 payload="body" mtomEnabled="true" port="TODO"  namespace="TODO" soapVersion="1.2">
 			<cxf:outFaultInterceptors/>
@@ -46,18 +46,18 @@
 
 		</catch-exception-strategy>
 	</flow>
-	<sub-flow name="testceSub_Flow">
-		<db:select config-ref="dbProxy-0001-db-conf" doc:name="database">
-			<db:dynamic-query><![CDATA[select * from  #[flowVars.aa]]]></db:dynamic-query>
-		</db:select>
-		<json:object-to-json-transformer json:name="Object to JSON" doc:name="Object to JSON"/>
-		<set-payload value="{status: true, data: [#[payload]], msg: &quot;获取信息成功&quot;}" doc:name="Set Payload" />
-		<json:object-to-json-transformer doc:name="Object to JSON" />
-		<set-payload value="
-     				&lt;ns2:getOneResponse xmlns:ns2=&quot;http://www.test.com&quot;&gt;
-         			&lt;zeroresult&gt;#[payload]&lt;/zeroresult&gt;
-     				&lt;/ns2:getOneResponse&gt;"
-					 doc:name="Set Payload" />
-	</sub-flow>
+<!--	<sub-flow name="testceSub_Flow">-->
+<!--		<db:select config-ref="dbProxy-0001-db-conf" doc:name="database">-->
+<!--			<db:dynamic-query><![CDATA[select * from  #[flowVars.aa]]]></db:dynamic-query>-->
+<!--		</db:select>-->
+<!--		<json:object-to-json-transformer json:name="Object to JSON" doc:name="Object to JSON"/>-->
+<!--		<set-payload value="{status: true, data: [#[payload]], msg: &quot;获取信息成功&quot;}" doc:name="Set Payload" />-->
+<!--		<json:object-to-json-transformer doc:name="Object to JSON" />-->
+<!--		<set-payload value="-->
+<!--     				&lt;ns2:getOneResponse xmlns:ns2=&quot;http://www.test.com&quot;&gt;-->
+<!--         			&lt;zeroresult&gt;#[payload]&lt;/zeroresult&gt;-->
+<!--     				&lt;/ns2:getOneResponse&gt;"-->
+<!--					 doc:name="Set Payload" />-->
+<!--	</sub-flow>-->
 
 </mule>

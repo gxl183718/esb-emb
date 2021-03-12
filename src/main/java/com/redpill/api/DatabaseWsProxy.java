@@ -32,11 +32,11 @@ public class DatabaseWsProxy implements MuleTask{
     private static final String service = portType + "Service";
 
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();
-    String xmlPre = "WDB-";
+    String xmlPre = "DBWS-";
     private String xmlName;
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("\\")?MuleConfig.dataPath:MuleConfig.dataPath+"\\")+ "xml\\DBWS/";
     private String wsdlName;
-    private String wsdlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String wsdlPath = (MuleConfig.dataPath.endsWith("\\")?MuleConfig.dataPath:MuleConfig.dataPath+"\\")+ "wsdl\\";
     private SpringXmlConfigurationBuilder configBuilder;
     public MuleContext muleContext;
 
@@ -45,27 +45,28 @@ public class DatabaseWsProxy implements MuleTask{
     public DatabaseWsProxy(DatabaseEntity databaseEntity) {
         this.databaseEntity = databaseEntity;
         this.xmlName = xmlPre + databaseEntity.getTask_id() + ".xml";
+        this.wsdlName = xmlPre + databaseEntity.getTask_id() + ".wsdl";
     }
-
 
     @Override
     public boolean executeTask() {
         LogTool.logInfo(2, "execute task " + databaseEntity.getTask_id());
         try {
             configBuilder = new SpringXmlConfigurationBuilder(xmlPath + xmlName);
+            System.out.println("aaaaaaaaaaaaaaaa:"+xmlPath + xmlName);
             muleContext = defaultMuleContextFactory.createMuleContext(configBuilder);
             muleContext.start();
             String id = muleContext.getConfiguration().getId();
-            String taskInfo = RedisUtils.redisPool.jedis(jedis -> {
-                jedis.hset(MuleConfig.muleMonitor + databaseEntity.getTask_id(), MuleConfig.hostIp, id);
-                return null;
-            });
+//            String taskInfo = RedisUtils.redisPool.jedis(jedis -> {
+//                jedis.hset(MuleConfig.muleMonitor + databaseEntity.getTask_id(), MuleConfig.hostIp, id);
+//                return null;
+//            });
             AnaTask.addToTaskMap(databaseEntity.getTask_id(), this);
             return true;
         } catch (Exception e) {
             LogTool.logInfo(1, databaseEntity.getTask_id() + " start error.");
             e.printStackTrace();
-            removeTask();
+//            removeTask();
         }
         return false;
     }
@@ -104,17 +105,23 @@ public class DatabaseWsProxy implements MuleTask{
         for (int i = 0; i < databaseEntity.getFlows().size(); i++) {
             String path = databaseEntity.getFlows().get(i).getTEsb().getPath();
         }
-//        wsdlInit();
+        try {
+            wsdlInit(databaseEntity);
+        } catch (JDOMException | IOException e) {
+            LogTool.logInfo(1, "wsdl init error " + databaseEntity.getTask_id());
+            e.printStackTrace();
+            return;
+        }
         try {
             databaseProxy();
-        } catch (IOException e) {
+        } catch (IOException | JDOMException e) {
+            LogTool.logInfo(1, "dbWs init error " + databaseEntity.getTask_id());
             e.printStackTrace();
-        } catch (JDOMException e) {
-            e.printStackTrace();
+            return;
         }
     }
 
-    private static Document wsdlInit(DatabaseEntity databaseEntity) throws JDOMException, IOException {
+    private void wsdlInit(DatabaseEntity databaseEntity) throws JDOMException, IOException {
         SAXBuilder saxBuilder = new SAXBuilder();
         InputStream is = ClassLoader.getSystemResourceAsStream(wsdlTemplatePath);
         Document document = saxBuilder.build(is);//exception
@@ -219,31 +226,12 @@ public class DatabaseWsProxy implements MuleTask{
         Element port1 = elementService.getChild("port", defaultNs);
         port1.setAttribute("name", port).setAttribute("binding", "tns:" + binding);
         port1.getChild("address", soapNs).setAttribute("location", "localhost:8080/mule");
-        return document;
-    }
 
-    public static void main(String[] args) throws JDOMException, IOException {
-        DatabaseEntity databaseEntity = new DatabaseEntity();
-        DatabaseEntity.Flow flow = new DatabaseEntity.Flow();
-        DatabaseEntity.TEsb tEsb = new DatabaseEntity.TEsb();
-        tEsb.setMethod("FuncOne");
-        flow.setTEsb(tEsb);
-        DatabaseEntity.Flow flow2 = new DatabaseEntity.Flow();
-        DatabaseEntity.TEsb tEsb2 = new DatabaseEntity.TEsb();
-        tEsb2.setMethod("FuncTwo");
-        flow2.setTEsb(tEsb2);
-        List list = new ArrayList();
-        list.add(flow);
-        list.add(flow2);
-        databaseEntity.setFlows(list);
-        File file = new File("src/test/xml/CreatedXml.xml");
+        File file = new File( wsdlPath + wsdlName );
         if (!file.exists()){
             file.createNewFile();
         }
-        Document document = wsdlInit(databaseEntity);
         saveDocument(document, file);
-//        System.out.println(System.getProperty("user.dir"));
-
     }
 
     private String databaseProxy() throws IOException, JDOMException {
@@ -281,8 +269,8 @@ public class DatabaseWsProxy implements MuleTask{
 
         Element flow = rootElement.getChild("flow", defaultNs);
         Element flowListener = flow.getChild("listener", httpNs);
-        flow.setAttribute("config-ref", listenerConfName);
-        flow.setAttribute("path", databaseEntity.getFlows().get(0).getTEsb().getPath());
+        flowListener.setAttribute("config-ref", listenerConfName);
+        flowListener.setAttribute("path", databaseEntity.getFlows().get(0).getTEsb().getPath());
 
         Element proxyService = flow.getChild("proxy-service", cxfNs);
         proxyService.setAttribute("wsdlLocation", wsdlPath + wsdlName);
@@ -298,10 +286,10 @@ public class DatabaseWsProxy implements MuleTask{
         //add flow
         for (int i = 0; i < databaseEntity.getFlows().size(); i++) {
             String subFlowName = "sub-flow-" + i;
-            String operation = databaseEntity.getFlows().get(i).getTEsb().getMethod();
+            String wsOperation = databaseEntity.getFlows().get(i).getTEsb().getMethod();
             String sql = databaseEntity.getFlows().get(i).getSEsb().getSql();
             Element when = new Element("when", defaultNs);
-            when.setAttribute("expression", "#[flowVars.operation == " + operation + "]");
+            when.setAttribute("expression", "#[flowVars.varOperation == '" + wsOperation + "']");
             Element flowRef = new Element("flow-ref", defaultNs);
             flowRef.setAttribute("name", subFlowName);
             flowRef.setAttribute("name", "Flow Reference", docNs);
@@ -309,26 +297,29 @@ public class DatabaseWsProxy implements MuleTask{
             flowChoice.addContent(when);
 
             Element exceptionWhen = new Element("when", defaultNs);
-            exceptionWhen.setAttribute("expression", "#[flowVars.operation == " + operation + "]");
+            exceptionWhen.setAttribute("expression", "#[flowVars.varOperation == '" + wsOperation + "']");
             Element exceptionPayload = new Element("set-payload", defaultNs);
-            exceptionPayload.setAttribute("value", "&lt;ns2:" + operation + "Response xmlns:ns2=&quot;" + targetNamespace + "&quot;&gt;           &lt;result&gt;            {&quot;status&quot;: &quot;false&quot;, &quot;data&quot;: [], &quot;msg&quot;: &quot;&#38169;&#35823;&quot;}          &lt;/result&gt;        &lt;/ns2:"+operation+"Response&gt; ");
+            exceptionPayload.setAttribute("value", "<ns2:" + wsOperation + "Response xmlns:ns2=\"" + targetNamespace + "\">           <result>            {\"status\": false, \"data\": [], \"msg\": \"错误\"}          </result>        </ns2:"+wsOperation+"Response> ");
+            exceptionWhen.addContent(exceptionPayload);
+            exceptionChoice.addContent(exceptionWhen);
 
             Element subFlow = new Element("sub-flow", defaultNs);
             subFlow.setAttribute("name", subFlowName);
             //sql
             sql = sqlCompletion(sql, databaseEntity.getFlows().get(i).getTEsb().getMethod());
             databaseEntity.getFlows().get(i).getSEsb().setSql(sql);
+            String sqlOperation = databaseEntity.getFlows().get(i).getSEsb().getOperate();
             Element dbOpe = null;
-            if ("select".equalsIgnoreCase(operation)){
+            if ("select".equalsIgnoreCase(sqlOperation)){
                 dbOpe = new Element("select", dbNs);
-            }else if ("insert".equalsIgnoreCase(operation)){
+            }else if ("insert".equalsIgnoreCase(sqlOperation)){
                 dbOpe = new Element("insert", dbNs);
-            }else if ("update".equalsIgnoreCase(operation)){
+            }else if ("update".equalsIgnoreCase(sqlOperation)){
                 dbOpe = new Element("update", dbNs);
-            }else if ("delete".equalsIgnoreCase(operation)){
+            }else if ("delete".equalsIgnoreCase(sqlOperation)){
                 dbOpe = new Element("delete", dbNs);
             }else {
-                throw new IllegalArgumentException("no such sb operate '" + operation + "'.");
+                throw new IllegalArgumentException("no such sb operate '" + sqlOperation + "'.");
             }
             dbOpe.setAttribute("config-ref", databaseConfName);
             dbOpe.setAttribute("name", "database", docNs);
@@ -344,20 +335,26 @@ public class DatabaseWsProxy implements MuleTask{
             Element payload = new Element("set-payload", defaultNs);
             payload.setAttribute("name", "Set Payload", docNs);
             payload.setAttribute("value",
-                    "&lt;ns2:" + operation + "Response xmlns:ns2=&quot;"+targetNamespace+"&quot;&gt;" +
-                           "&lt;zeroresult&gt;"+
-                            "{&quot;status&quot;: &quot;false&quot;, &quot;data&quot;: [#[payload]], &quot;msg&quot;: &quot;获取信息成功&quot;}"
-                            +"&lt;/zeroresult&gt;"+
-                           "&lt;/ns2:getOneResponse&gt;"
+                    "<ns2:" + wsOperation + "Response xmlns:ns2=\""+targetNamespace+"\">" +
+                           "<result>"+
+                            "{\"status\": false, \"data\": [#[payload]], \"msg\": \"获取信息成功\"}"
+                            +"</result>"+
+                           "</ns2:"+wsOperation+"Response>"
             );
             subFlow.addContent(payload);
             rootElement.addContent(subFlow);
 
         }
         File file = new File(xmlPath + xmlName);
+        System.out.println("bbbbbbbbbbb"+xmlPath + xmlName);
         if (!file.exists()){
-            file.createNewFile();
+            boolean newFile = file.createNewFile();
+            System.out.println(newFile);
         }
+        File file1 = new File(xmlPath + xmlName);
+        System.out.println("bbbbccccc"+file1.exists());
+        System.out.println("ccccccccccccc:" + file.getAbsolutePath());
+        System.out.println(file.length());
         saveDocument(document, file);
         return xmlPath + xmlName;
     }
@@ -368,4 +365,50 @@ public class DatabaseWsProxy implements MuleTask{
         sql = sql.replaceAll("}", "]");
         return sql;
     }
+
+    //for test
+    public static void main(String[] args){
+
+        DatabaseEntity databaseEntity = new DatabaseEntity();
+        databaseEntity.setTask_id("001");
+        databaseEntity.getConfig().setHttp_port(8888);
+        databaseEntity.getConfig().setHttp_host("127.0.0.1");
+        databaseEntity.getConfig().setData_type("");
+        databaseEntity.getConfig().setIp_address("172.20.20.226");
+        databaseEntity.getConfig().setPort(5866);
+        databaseEntity.getConfig().setDatabase_ins("highgo");
+        databaseEntity.getConfig().setData_type("highgo");
+        databaseEntity.getConfig().setUser_name("sysdba");
+        databaseEntity.getConfig().setPassword("Ntdh@123456");
+
+        DatabaseEntity.Flow flow = new DatabaseEntity.Flow();
+        DatabaseEntity.TEsb tEsb = new DatabaseEntity.TEsb();
+        tEsb.setMethod("FuncOne");
+        tEsb.setPath("/dbws");
+        flow.setTEsb(tEsb);
+        DatabaseEntity.SEsb sEsb = new DatabaseEntity.SEsb();
+        sEsb.setSql("select * from user_tables");
+        sEsb.setOperate("select");
+        flow.setSEsb(sEsb);
+
+        DatabaseEntity.Flow flow2 = new DatabaseEntity.Flow();
+        DatabaseEntity.TEsb tEsb2 = new DatabaseEntity.TEsb();
+        tEsb2.setMethod("FuncTwo");
+        tEsb2.setPath("/dbws");
+        flow2.setTEsb(tEsb2);
+        DatabaseEntity.SEsb sEsb2 = new DatabaseEntity.SEsb();
+        sEsb2.setSql("select #{c} from #{d}");
+        sEsb2.setOperate("select");
+        flow2.setSEsb(sEsb2);
+
+        List list = new ArrayList();
+        list.add(flow);
+        list.add(flow2);
+        databaseEntity.setFlows(list);
+
+        DatabaseWsProxy databaseWsProxy = new DatabaseWsProxy(databaseEntity);
+        databaseWsProxy.initTask();
+        databaseWsProxy.executeTask();
+    }
+
 }

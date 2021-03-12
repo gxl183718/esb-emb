@@ -18,7 +18,7 @@ public class DatabaseEntity {
     private String task_desc;
     private String task_type;
     private String state;
-    private GlobalConf config;
+    private GlobalConf config = new GlobalConf();
     private List<Flow> flows = new ArrayList<>();
 
     @Data
