@@ -12,7 +12,7 @@ public class LogTool {
 
     public static void logInfo(int level, String info){
         if (level <= MuleConfig.logLevel){
-            System.out.println(getTime() + info);
+            System.out.println("【"+MuleConfig.logLevel+"】" + getTime() + info);
         }
     }
     public static void logInfo(int level, long... args){

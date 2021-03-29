@@ -36,7 +36,7 @@ public class MuleMonitor extends TimerTask {
                         ":type=Application,name=!%22application%20totals!%22/TotalEventsReceived";
                 String s2 = HttpRequest.sendGet(urlR, null);
                 ValueEnt valueEnt2 = JSON.parseObject(s2, ValueEnt.class);
-                value2 = valueEnt.getValue();
+                value2 = valueEnt2.getValue();
             }
             int total = value + value2;
             RedisUtils.redisPool.jedis(jedis -> {

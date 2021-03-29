@@ -27,7 +27,7 @@ public class DatabaseProxy implements MuleTask{
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();
     String xmlPre = "HDB-";
     private String xmlName;
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private SpringXmlConfigurationBuilder configBuilder;
     public MuleContext muleContext;
 

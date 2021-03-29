@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MuleCoreServer {
-    private static final String cf = "conf/cf";
+    private static final String cf = "data/flow";
     private static Map<String, MuleTask> map = new ConcurrentHashMap();
     public static void main(String[] args) {
         try {

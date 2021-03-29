@@ -27,7 +27,7 @@ public class PathProxy implements MuleTask{
     private static final String xmlPre = "HPP-";
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();
     private String xmlName;
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private SpringXmlConfigurationBuilder configBuilder;
     public String taskId;
     public MuleContext muleContext;
@@ -67,7 +67,7 @@ public class PathProxy implements MuleTask{
 
 
     public static void main(String[] args) throws JDOMException, IOException {
-        FileInputStream fileInputStream = new FileInputStream(new File("conf/cf/hpp-hpp-001.xml"));
+        FileInputStream fileInputStream = new FileInputStream(new File("data/flow/hpp-hpp-001.xml"));
         SAXBuilder saxBuilder = new SAXBuilder();
         Document document2 = saxBuilder.build(fileInputStream);
         for (Object child : document2.getRootElement().getChildren()) {

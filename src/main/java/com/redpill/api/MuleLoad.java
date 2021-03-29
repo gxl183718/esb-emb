@@ -15,7 +15,7 @@ import java.io.File;
 
 public class MuleLoad implements MuleTask{
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     public MuleContext muleContext;
     private SpringXmlConfigurationBuilder configBuilder;
     private String taskId;
@@ -28,6 +28,7 @@ public class MuleLoad implements MuleTask{
     public MuleLoad(String xmlName) {
         this.xmlName = xmlName;
         this.taskId = xmlName.substring(xmlName.indexOf("-", 0)+1, xmlName.lastIndexOf("."));
+        System.out.println("path  " + xmlPath + xmlName + ", id   " + taskId);
     }
 
     @Override

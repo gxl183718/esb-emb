@@ -28,7 +28,7 @@ public class HttpGetToWs implements MuleTask {
     private String xmlPre = "hgtw-";
     private String xmlName;
     private String xsltPre = "hgtw-xslt-";
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private String xsltPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "xslt/";
     private String xsltName;
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();

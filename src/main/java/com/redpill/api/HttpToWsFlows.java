@@ -31,7 +31,7 @@ public class HttpToWsFlows implements MuleTask {
     private static final String xmlTemplatePath = "httpToWsFlows.xml";
     private String xmlPre = "HTW-";
     private String xmlName;
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private String xsltPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "xslt/";
     private String xsltPre = "HTWXSLT-";
     public MuleContext muleContext;

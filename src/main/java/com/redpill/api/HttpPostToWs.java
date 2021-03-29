@@ -28,7 +28,7 @@ public class HttpPostToWs implements MuleTask {
     private static final String xmlTemplatePath = "httpPostToWsTem.xml";
     private String xmlPre = "ftw-";
     private String xmlName;
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private String xsltPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "xslt/";
     private String xsltPre = "ftw-xslt-";
     private String xsltName;

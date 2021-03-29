@@ -32,7 +32,7 @@ public class HttpGetToWsFlows implements MuleTask {
     private static final String xmlTemplatePath = "httpGetToWsFlows.xml";
     private String xmlPre = "HGTW-";
     private String xmlName;
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private String xsltPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "xslt/";
 
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();

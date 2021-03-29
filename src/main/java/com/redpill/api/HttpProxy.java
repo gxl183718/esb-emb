@@ -27,7 +27,7 @@ public class HttpProxy implements MuleTask{
     private static final String xmlPre = "hp-";
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();
     private String xmlName;
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private SpringXmlConfigurationBuilder configBuilder;
     public String taskId;
     public MuleContext muleContext;

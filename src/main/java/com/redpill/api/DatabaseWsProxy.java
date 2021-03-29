@@ -34,9 +34,9 @@ public class DatabaseWsProxy implements MuleTask{
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();
     String xmlPre = "DBWS-";
     private String xmlName;
-    private String xmlPath = (MuleConfig.dataPath.endsWith("\\")?MuleConfig.dataPath:MuleConfig.dataPath+"\\")+ "xml\\DBWS/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private String wsdlName;
-    private String wsdlPath = (MuleConfig.dataPath.endsWith("\\")?MuleConfig.dataPath:MuleConfig.dataPath+"\\")+ "wsdl\\";
+    private String wsdlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "wsdl/";
     private SpringXmlConfigurationBuilder configBuilder;
     public MuleContext muleContext;
 
@@ -53,20 +53,19 @@ public class DatabaseWsProxy implements MuleTask{
         LogTool.logInfo(2, "execute task " + databaseEntity.getTask_id());
         try {
             configBuilder = new SpringXmlConfigurationBuilder(xmlPath + xmlName);
-            System.out.println("aaaaaaaaaaaaaaaa:"+xmlPath + xmlName);
             muleContext = defaultMuleContextFactory.createMuleContext(configBuilder);
             muleContext.start();
             String id = muleContext.getConfiguration().getId();
-//            String taskInfo = RedisUtils.redisPool.jedis(jedis -> {
-//                jedis.hset(MuleConfig.muleMonitor + databaseEntity.getTask_id(), MuleConfig.hostIp, id);
-//                return null;
-//            });
+            String taskInfo = RedisUtils.redisPool.jedis(jedis -> {
+                jedis.hset(MuleConfig.muleMonitor + databaseEntity.getTask_id(), MuleConfig.hostIp, id);
+                return null;
+            });
             AnaTask.addToTaskMap(databaseEntity.getTask_id(), this);
             return true;
         } catch (Exception e) {
             LogTool.logInfo(1, databaseEntity.getTask_id() + " start error.");
             e.printStackTrace();
-//            removeTask();
+            removeTask();
         }
         return false;
     }
@@ -337,7 +336,7 @@ public class DatabaseWsProxy implements MuleTask{
             payload.setAttribute("value",
                     "<ns2:" + wsOperation + "Response xmlns:ns2=\""+targetNamespace+"\">" +
                            "<result>"+
-                            "{\"status\": false, \"data\": [#[payload]], \"msg\": \"获取信息成功\"}"
+                            "{\"status\": true, \"data\": #[payload], \"msg\": \"获取信息成功\"}"
                             +"</result>"+
                            "</ns2:"+wsOperation+"Response>"
             );
@@ -346,15 +345,11 @@ public class DatabaseWsProxy implements MuleTask{
 
         }
         File file = new File(xmlPath + xmlName);
-        System.out.println("bbbbbbbbbbb"+xmlPath + xmlName);
         if (!file.exists()){
             boolean newFile = file.createNewFile();
-            System.out.println(newFile);
+//            System.out.println(newFile);
         }
-        File file1 = new File(xmlPath + xmlName);
-        System.out.println("bbbbccccc"+file1.exists());
-        System.out.println("ccccccccccccc:" + file.getAbsolutePath());
-        System.out.println(file.length());
+//        System.out.println(file.length());
         saveDocument(document, file);
         return xmlPath + xmlName;
     }
@@ -372,7 +367,7 @@ public class DatabaseWsProxy implements MuleTask{
         DatabaseEntity databaseEntity = new DatabaseEntity();
         databaseEntity.setTask_id("001");
         databaseEntity.getConfig().setHttp_port(8888);
-        databaseEntity.getConfig().setHttp_host("127.0.0.1");
+        databaseEntity.getConfig().setHttp_host("0.0.0.0");
         databaseEntity.getConfig().setData_type("");
         databaseEntity.getConfig().setIp_address("172.20.20.226");
         databaseEntity.getConfig().setPort(5866);

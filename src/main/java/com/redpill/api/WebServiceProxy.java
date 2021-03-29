@@ -30,7 +30,7 @@ public class WebServiceProxy implements MuleTask {
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();
     private static final String xmlPre = "WSP-";
     private String xmlName;
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private SpringXmlConfigurationBuilder configBuilder;
     private String taskId;
     private MuleContext muleContext;

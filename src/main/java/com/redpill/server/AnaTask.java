@@ -107,6 +107,12 @@ public class AnaTask {
             databaseProxy.initTask();
             databaseProxy.executeTask();
 
+        }else if (httpProxyEntity1.getTask_type().equalsIgnoreCase("23")){
+            LogTool.logInfo(1, "type 23 : " + taskInfo);
+            DatabaseEntity databaseEntity = JSON.parseObject(taskInfo, DatabaseEntity.class);
+            DatabaseWsProxy databaseWsProxy = new DatabaseWsProxy(databaseEntity);
+            databaseWsProxy.initTask();
+            databaseWsProxy.executeTask();
         }else {
             LogTool.logInfo(1, "not existed type " + httpProxyEntity1.getTask_type());
             return false;

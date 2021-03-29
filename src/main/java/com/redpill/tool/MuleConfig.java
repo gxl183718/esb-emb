@@ -18,7 +18,7 @@ public class MuleConfig {
     @From(must = true)
     public static int logLevel = 2;
     @From(must = true)
-    public static String dataPath = "conf/";
+    public static String dataPath = "data\\";
 
     @From(alternateNames = "redisUrl")
     public static List<String> redisUrls;

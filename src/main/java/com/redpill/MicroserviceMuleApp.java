@@ -15,13 +15,13 @@ public class MicroserviceMuleApp {
 //        ApplicationContext context =
 //                new AnnotationConfigApplicationContext(MicroserviceMuleApp.class);
         DefaultMuleContextFactory muleContextFactory = new DefaultMuleContextFactory();
-//        SpringXmlConfigurationBuilder configBuilder = new SpringXmlConfigurationBuilder("conf/cf/wsProxyTem.xml");
+//        SpringXmlConfigurationBuilder configBuilder = new SpringXmlConfigurationBuilder("conf/flow/wsProxyTem.xml");
 //        SpringXmlConfigurationBuilder configBuilder = new SpringXmlConfigurationBuilder("httpGetToWsFlows.xml");
 //        MuleContext muleContext = muleContextFactory.createMuleContext(configBuilder);
 //        MuleContext muleContext = muleContextFactory.createMuleContext("conf/cfTem/JsonToWS.xml");
 //        MuleContext muleContext = muleContextFactory.createMuleContext("conf/cfTem/httpGetToWsTem.xml");
         MuleContext muleContext = muleContextFactory.createMuleContext(
-                "conf/cf/hbase-dbProxy-0001.xml");
+                "data/xml/DBWS/DBWS-001.xml");
 //        MuleContext muleContext = muleContextFactory.createMuleContext(args[0]);
         muleContext.start();
         System.out.println("is starting");

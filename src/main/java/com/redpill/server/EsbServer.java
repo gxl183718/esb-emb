@@ -10,6 +10,7 @@ import com.redpill.tool.MuleConfig;
 import com.zzq.dolls.config.LoadConfig;
 import org.mule.api.MuleContext;
 import org.mule.api.MuleException;
+import org.mule.api.annotations.expressions.Mule;
 import org.mule.api.config.ConfigurationException;
 import org.mule.api.lifecycle.InitialisationException;
 
@@ -31,15 +32,34 @@ public class EsbServer {
 
         LogTool.logInfo(1, "【1】CONFIG params : " + LoadConfig.toString(MuleConfig.class));
         //create data dir if not exist
-        File file1 = new File(MuleConfig.dataPath + "cf/");
-        File file2 = new File(MuleConfig.dataPath + "xslt/");
-        LogTool.logInfo(1, "【2】DATA path " + file1.getAbsolutePath() + "," + file2.getAbsolutePath());
-        if (!file1.exists()) {
-            file1.mkdir();
+        String wsdl = MuleConfig.dataPath + "wsdl/";
+        String flow = MuleConfig.dataPath + "flow/";
+        String xslt = MuleConfig.dataPath + "xslt/";
+        File file = new File(MuleConfig.dataPath);
+        if (!file.exists()){
+            LogTool.logInfo(1, "【1】Please make sure tha data path '"+ MuleConfig.dataPath +"' existed!");
+            return;
         }
-        if (!file2.exists()) {
-            file2.mkdir();
+        LogTool.logInfo(1, "【1】DATA path : " + MuleConfig.dataPath);
+
+        File wsdlData = new File(wsdl);
+        File flowData = new File(flow);
+        File xsltData = new File(xslt);
+        boolean dataSons = true;
+        if (!wsdlData.exists()) {
+            dataSons = dataSons & wsdlData.mkdir();
         }
+        if (!flowData.exists()) {
+            dataSons = dataSons & flowData.mkdir();
+        }
+        if (!xsltData.exists()){
+            dataSons = dataSons & xsltData.mkdir();
+        }
+        if (!dataSons){
+            LogTool.logInfo(1, "Create Secondary data dirs error, do not have permission.");
+            return;
+        }
+
 //        first start to load history task
         Timer timer = new Timer();
         TimerTask timerTask = new TimerTask() {
@@ -62,7 +82,7 @@ public class EsbServer {
             Timer timer1 = new Timer();
             MuleMonitor muleMonitor = new MuleMonitor();
             timer1.schedule(muleMonitor, 10*1000L, MuleConfig.monitorSch);
-            LogTool.logInfo(1, "【3】MONITOR for mule server");
+            LogTool.logInfo(1, "【2】MONITOR for mule server");
         } catch (InitialisationException e) {
             e.printStackTrace();
         } catch (ConfigurationException e) {
@@ -73,14 +93,14 @@ public class EsbServer {
 
         //task consume thread
         if (!args[0].equals("test")){
-            LogTool.logInfo(1, "【4】 there are " + file1.list().length + " history tasks!");
-            for (String s : file1.list()) {
+//System.out.println("ggggggggg:"+flowData.getAbsolutePath());
+            LogTool.logInfo(1, "【3】 Load history tasks, size(" + flowData.list().length + ").");
+            for (String s : flowData.list()) {
                 LogTool.logInfo(1, "    LOAD task : " + s);
                 MuleLoad muleLoad = new MuleLoad(s);
                 muleLoad.initTask();
                 muleLoad.executeTask();
             }
-
             chose = "sys";
             RabbitMQConsumer rabbitMQConsumer = new RabbitMQConsumer();
             Thread thread = new Thread(rabbitMQConsumer, "rabbit-consume");

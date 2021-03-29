@@ -29,7 +29,7 @@ public class JsonToWs implements MuleTask {
     private static final String xmlTemplatePath = "jsonToWsTem.xml";
     private String xmlPre = "jtw-";
     private String xmlName;
-    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "cf/";
+    private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private String xsltPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "xslt/";
     private String xsltPre = "jtw-xslt-";
     private String xsltName;

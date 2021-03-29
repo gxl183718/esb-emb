@@ -16,8 +16,6 @@ import java.util.List;
 import java.util.UUID;
 
 public class CFManager {
-    final String cfPath = "mule-microservice-v2-master/conf/cf/";
-    final String cfTem = "mul3-microservice-v2-master/conf/cfTem/";
 
     public static void main(String[] args) throws IOException, JDOMException, InterruptedException {
 //        String xml = wsProxy("http://0.0.0.0:8082/cxf/webServices", "http://localhost:8080/cxf/webServices",
