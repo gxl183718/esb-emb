@@ -5,6 +5,7 @@ import com.zzq.dolls.config.From;
 import com.zzq.dolls.config.LoadConfig;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -52,7 +53,7 @@ public class MuleConfig {
     @From(must = true)
     public static String hostIp;
     @From(must = false)
-    public static String remoteIp;
+    public static List<String> remoteIp = new ArrayList<>();
     @From(must = false)
     public static long monitorSch = 60 * 1000L;
 

@@ -4,12 +4,15 @@ import com.alibaba.fastjson.JSON;
 import com.rabbitmq.client.Channel;
 import com.redpill.tool.LogTool;
 import com.redpill.tool.MuleConfig;
+import com.redpill.tool.RedisUtils;
 import com.zzq.dolls.mq.rabbit.RabbitConsumer;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RabbitMQConsumer implements Runnable {
     public static AtomicBoolean isWaiting = new AtomicBoolean(false);
+
+
     @Override
     public void run() {
 
@@ -25,6 +28,15 @@ public class RabbitMQConsumer implements Runnable {
 
             rabbitConsumer.message(body -> {
                 String task = new String(body);
+                //写入备用节点
+                for (String remoteIp : MuleConfig.remoteIp) {
+                    String taskInfo = RedisUtils.redisPool.jedis(jedis -> {
+                        jedis.lpush("back-" + remoteIp, task);
+                        LogTool.logInfo(2, "Have back node ( " + remoteIp + ") , push task to remote.");
+                        return null;
+                    });
+                }
+
                 TaskEntity taskEntity = null;
                 try{
                     taskEntity = JSON.parseObject(task, TaskEntity.class);
@@ -38,6 +50,7 @@ public class RabbitMQConsumer implements Runnable {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+                LogTool.logInfo(2, "task ok : " + task);
                 return true;
             });
             rabbitConsumer.start();

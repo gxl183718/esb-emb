@@ -7,6 +7,7 @@ import com.redpill.api.MuleTask;
 import com.redpill.entity.DatabaseEntity;
 import com.redpill.tool.LogTool;
 import com.redpill.tool.MuleConfig;
+import com.redpill.tool.RedisUtils;
 import com.zzq.dolls.config.LoadConfig;
 import org.mule.api.MuleContext;
 import org.mule.api.MuleException;
@@ -105,6 +106,30 @@ public class EsbServer {
             RabbitMQConsumer rabbitMQConsumer = new RabbitMQConsumer();
             Thread thread = new Thread(rabbitMQConsumer, "rabbit-consume");
             thread.start();
+
+            //consume from redis
+            new Thread(()->{
+                String task = RedisUtils.redisPool.jedis(jedis -> {
+                    String info =  jedis.lpop("back-" + MuleConfig.hostIp);
+                    return info;
+                });
+                TaskEntity taskEntity = null;
+                try{
+                    taskEntity = JSON.parseObject(task, TaskEntity.class);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+                LogTool.logInfo(2, "recv task : " + task);
+                try {
+                    AnaTask.taskHandle(taskEntity);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                LogTool.logInfo(2, "task ok : " + task);
+
+            }).start();
+
+
         }else {
             chose = "test";
             //for test

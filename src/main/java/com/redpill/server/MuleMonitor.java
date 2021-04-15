@@ -23,22 +23,33 @@ public class MuleMonitor extends TimerTask {
 
             String urlH = "http://"+MuleConfig.hostIp+":8899/jolokia/read/Mule." + hostId +
                     ":type=Application,name=!%22application%20totals!%22/TotalEventsReceived";
-            String s = HttpRequest.sendGet(urlH, null);
-            ValueEnt valueEnt = JSON.parseObject(s, ValueEnt.class);
-            int value = valueEnt.getValue();
-            int value2 = 0;
-            if (MuleConfig.remoteIp != null){
+            int value = 0;
+            try {
+                String s = HttpRequest.sendGet(urlH, null);
+                ValueEnt valueEnt = JSON.parseObject(s, ValueEnt.class);
+                value = valueEnt.getValue();
+            }catch (Exception e){
+
+            }
+
+            for (String remoteIp : MuleConfig.remoteIp) {
+                int value2 = 0;
                 String remoteId = null;
-                    remoteId = RedisUtils.redisPool.jedis(jedis -> {
-                        return jedis.hget(MuleConfig.muleMonitor + taskId, MuleConfig.remoteIp);
+                remoteId = RedisUtils.redisPool.jedis(jedis -> {
+                    return jedis.hget(MuleConfig.muleMonitor + taskId, remoteIp);
                 });
                 String urlR = "http://"+MuleConfig.remoteIp+":8899/jolokia/read/Mule." + remoteId +
                         ":type=Application,name=!%22application%20totals!%22/TotalEventsReceived";
-                String s2 = HttpRequest.sendGet(urlR, null);
-                ValueEnt valueEnt2 = JSON.parseObject(s2, ValueEnt.class);
-                value2 = valueEnt2.getValue();
+                try {
+                    String s2 = HttpRequest.sendGet(urlR, null);
+                    ValueEnt valueEnt2 = JSON.parseObject(s2, ValueEnt.class);
+                    value2 = valueEnt2.getValue();
+                }catch (Exception e){
+                }
+                value += value2;
             }
-            int total = value + value2;
+            int total = value;
+
             RedisUtils.redisPool.jedis(jedis -> {
                 jedis.hset(MuleConfig.eventTotal, taskId, String.valueOf(total));
                 return null;
