@@ -57,15 +57,8 @@ public class MuleConfig {
     @From(must = false)
     public static long monitorSch = 60 * 1000L;
 
-    public static void main(String[] args) throws IOException {
-        LoadConfig.load(MuleConfig.class);
-        System.out.println("level " + MuleConfig.redisUrls.toString());
-        RedisUtils.redisPool.jedis(jedis->{
-            System.out.println("222222222222");
-            String a = jedis.get("mule.monitor");
-            System.out.println("lllllll:" + a);
-            return null;
-        });
-    }
+    public static String db_url;
+    public static String db_user;
+    public static String db_password;
 
 }

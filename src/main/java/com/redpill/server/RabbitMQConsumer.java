@@ -44,7 +44,7 @@ public class RabbitMQConsumer implements Runnable {
                     e.printStackTrace();
                     return true;
                 }
-                LogTool.logInfo(2, "recv task : " + task);
+                LogTool.logInfo(2, "recv-ms task : " + task);
                 try {
                     AnaTask.taskHandle(taskEntity);
                 } catch (Exception e) {

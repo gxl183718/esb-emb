@@ -9,6 +9,7 @@ import com.redpill.tool.LogTool;
 import com.redpill.tool.MuleConfig;
 import com.redpill.tool.RedisUtils;
 import com.zzq.dolls.config.LoadConfig;
+import com.zzq.dolls.db.JDBCPool;
 import org.mule.api.MuleContext;
 import org.mule.api.MuleException;
 import org.mule.api.annotations.expressions.Mule;
@@ -17,10 +18,15 @@ import org.mule.api.lifecycle.InitialisationException;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 
 public class EsbServer {
+
+    public static JDBCPool jdbc;
+
     public static String chose;
     public static void main(String[] args) {
         try {
@@ -30,6 +36,13 @@ public class EsbServer {
             System.exit(0);
             e.printStackTrace();
         }
+
+        jdbc = JDBCPool.builder()
+                .driver("com.mysql.jdbc.Driver")
+                .url(MuleConfig.db_url)
+                .userName(MuleConfig.db_user)
+                .password(MuleConfig.db_password)
+                .build();
 
         LogTool.logInfo(1, "【1】CONFIG params : " + LoadConfig.toString(MuleConfig.class));
         //create data dir if not exist
@@ -81,14 +94,32 @@ public class EsbServer {
             muleContext.start();
 
             Timer timer1 = new Timer();
-            MuleMonitor muleMonitor = new MuleMonitor();
+            MuleMonitor muleMonitor = new MuleMonitor(jdbc);
+            Date today = new Date(System.currentTimeMillis());
+//            TODO:查看库中本时段请求次数HS，将mulemMnitor中历史访问量设置为 -HS
+            String sql = "select task_id,request_num from esb_table where day='" + today + "'";
+            System.out.println("..........................sql is : " + sql);
+            Map<String, Integer> results = jdbc.select(sql, resultSet -> {
+                Map<String, Integer> result = new HashMap<>();
+                while(resultSet.next()){
+                    String id = resultSet.getString("task_id");
+                    int num = resultSet.getInt("request_num");
+                    result.put(id, num);
+                    System.out.println("....." + id + ":" + num);
+                }
+                return result;
+            });
+            for (Map.Entry<String, Integer> entry : results.entrySet()) {
+                System.out.println("历史访问次数：" + entry.getKey() + ":" + entry.getValue());
+                MuleMonitor.historySize.put(entry.getKey(), -entry.getValue());
+            }
             timer1.schedule(muleMonitor, 10*1000L, MuleConfig.monitorSch);
             LogTool.logInfo(1, "【2】MONITOR for mule server");
         } catch (InitialisationException e) {
             e.printStackTrace();
         } catch (ConfigurationException e) {
             e.printStackTrace();
-        } catch (MuleException e) {
+        } catch (MuleException | SQLException e) {
             e.printStackTrace();
         }
 
@@ -109,24 +140,34 @@ public class EsbServer {
 
             //consume from redis
             new Thread(()->{
-                String task = RedisUtils.redisPool.jedis(jedis -> {
-                    String info =  jedis.lpop("back-" + MuleConfig.hostIp);
-                    return info;
-                });
-                TaskEntity taskEntity = null;
-                try{
-                    taskEntity = JSON.parseObject(task, TaskEntity.class);
-                }catch (Exception e){
-                    e.printStackTrace();
+                LogTool.logInfo(1, "sync data from back nodes .");
+                while(true){
+                    String task = RedisUtils.redisPool.jedis(jedis -> {
+                        String info =  jedis.lpop("back-" + MuleConfig.hostIp);
+                        return info;
+                    });
+                    if (task == null){
+                        try {
+                            Thread.sleep(10*1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        continue;
+                    }
+                    TaskEntity taskEntity = null;
+                    try{
+                        taskEntity = JSON.parseObject(task, TaskEntity.class);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+                    LogTool.logInfo(2, "recv-back task : " + task);
+                    try {
+                        AnaTask.taskHandle(taskEntity);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    LogTool.logInfo(2, "task ok : " + task);
                 }
-                LogTool.logInfo(2, "recv task : " + task);
-                try {
-                    AnaTask.taskHandle(taskEntity);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                LogTool.logInfo(2, "task ok : " + task);
-
             }).start();
 
 

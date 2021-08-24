@@ -21,7 +21,7 @@ public class MicroserviceMuleApp {
 //        MuleContext muleContext = muleContextFactory.createMuleContext("conf/cfTem/JsonToWS.xml");
 //        MuleContext muleContext = muleContextFactory.createMuleContext("conf/cfTem/httpGetToWsTem.xml");
         MuleContext muleContext = muleContextFactory.createMuleContext(
-                "data/xml/DBWS/DBWS-001.xml");
+                "conf/flow/jolokia-task1.xml");
 //        MuleContext muleContext = muleContextFactory.createMuleContext(args[0]);
         muleContext.start();
         System.out.println("is starting");

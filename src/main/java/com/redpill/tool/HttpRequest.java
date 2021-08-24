@@ -50,8 +50,8 @@ public class HttpRequest {
                 result += line;
             }
         } catch (Exception e) {
-            System.out.println("发送GET请求出现异常" + e);
-            e.printStackTrace();
+//            System.out.println("发送GET请求出现异常" + e);
+//            e.printStackTrace();
         }
         return result;
 
