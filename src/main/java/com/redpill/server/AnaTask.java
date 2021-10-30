@@ -2,10 +2,8 @@ package com.redpill.server;
 
 import com.alibaba.fastjson.JSON;
 import com.redpill.api.*;
-import com.redpill.entity.DatabaseEntity;
-import com.redpill.entity.HttpProxyEntity;
-import com.redpill.entity.HttpWsEntity;
-import com.redpill.entity.WsProxyEntity;
+import com.redpill.entity.*;
+import com.redpill.tool.FileTool;
 import com.redpill.tool.LogTool;
 import com.redpill.tool.MuleConfig;
 import com.redpill.tool.RedisUtils;
@@ -27,6 +25,7 @@ public class AnaTask {
     public static void addToTaskMap(String id, MuleTask task){
         taskMap.put(id, task);
     }
+    public static MuleTask getFromTaskMap(String serverId){return taskMap.get(serverId);}
     class TaskAction {
         public static final int ADD = 0;
         public static final int UPDATE = 1;
@@ -53,6 +52,24 @@ public class AnaTask {
         return false;
     }
 
+    //TODO: getServerId 获取任务中代理服务的id，代理服务id对应唯一的xml文件
+    public static String getServerId(String taskInfo) throws Exception{
+        TaskInfoEntity taskInfoEntity = JSON.parseObject(taskInfo, TaskInfoEntity.class);
+        if (null == taskInfoEntity.getServerPort() || null == taskInfoEntity.getTask_type()){
+            throw new NullPointerException("Server port and task type is required.");
+        }else {
+            return taskInfoEntity.getTask_type() + "@" + taskInfoEntity.getServerPort();
+        }
+    }
+
+    public static String getInfoType(String taskId){
+        String taskInfo = RedisUtils.redisPool.jedis(jedis -> {
+            return jedis.hget(MuleConfig.taskInfo, taskId);
+        });
+        HttpProxyEntity httpProxyEntity1 = JSON.parseObject(taskInfo, HttpProxyEntity.class);
+        return httpProxyEntity1.getTask_type();
+    }
+
     public static boolean add(TaskEntity taskEntity) throws Exception {
         String id = taskEntity.getTask_id();
         String taskInfo = RedisUtils.redisPool.jedis(jedis -> {
@@ -60,13 +77,18 @@ public class AnaTask {
         });
 
         HttpProxyEntity httpProxyEntity1 = JSON.parseObject(taskInfo, HttpProxyEntity.class);
+        //TODO:
+//        String serverId = getServerId(taskInfo);
 
+        /*
+        每个任务仅支持配置一个接口映射
+         */
 
         if (httpProxyEntity1.getTask_type().equalsIgnoreCase("11")){
             LogTool.logInfo(1, "type 11 : " + taskInfo);
             List<PathProxy.HttpFlow> list = new ArrayList<>();
             for (int i = 0; i < httpProxyEntity1.getFlows().size(); i++) {
-                PathProxy.HttpFlow httpFlow1 = new PathProxy.HttpFlow("flow-" + i, httpProxyEntity1.getFlows().get(i).getT_esb().getPath(),
+                PathProxy.HttpFlow httpFlow1 = new PathProxy.HttpFlow(id, httpProxyEntity1.getFlows().get(i).getT_esb().getPath(),
                         httpProxyEntity1.getFlows().get(i).getS_esb().getPath(), httpProxyEntity1.getFlows().get(i).getT_esb().getMethod());
                 list.add(httpFlow1);
             }
@@ -74,8 +96,8 @@ public class AnaTask {
                     Integer.valueOf(httpProxyEntity1.getFlows().get(0).getT_esb().getPort()), httpProxyEntity1.getFlows().get(0).getS_esb().getIp_address(), Integer.parseInt(httpProxyEntity1.getFlows().get(0).getS_esb().getPort()));
             //TODO://init failed
             pathProxy.initTask();
-            pathProxy.executeTask();
-            addToTaskMap(httpProxyEntity1.getTask_id(), pathProxy);
+            restartMule(pathProxy);
+
         }else if (httpProxyEntity1.getTask_type().equalsIgnoreCase("22")){
             LogTool.logInfo(1, "type 22 : " + taskInfo);
             WsProxyEntity wsProxyEntity = JSON.parseObject(taskInfo, WsProxyEntity.class);
@@ -99,7 +121,8 @@ public class AnaTask {
 //            httpWsEntity.getFlows().get(0).getT_esb().setMethod("get");
             HttpToWsFlows httpToWsFlows = new HttpToWsFlows(httpWsEntity);
             httpToWsFlows.initTask();
-            httpToWsFlows.executeTask();
+            restartMule(httpToWsFlows);
+//            httpToWsFlows.executeTask();
         }else if (httpProxyEntity1.getTask_type().equalsIgnoreCase("13")){
             LogTool.logInfo(1, "type 13 : " + taskInfo);
             DatabaseEntity databaseEntity = JSON.parseObject(taskInfo, DatabaseEntity.class);
@@ -119,11 +142,36 @@ public class AnaTask {
         }
         return false;
     }
-    public static boolean del(TaskEntity taskEntity){
-        taskMap.get(taskEntity.getTask_id()).closeTask();
-        taskMap.get(taskEntity.getTask_id()).removeTask();
-        AnaTask.rmFromMap(taskEntity.getTask_id());
-        return true;
+    public static boolean del(TaskEntity taskEntity) throws Exception {
+        //TODO：webservice 重新考慮
+        // taskId->serverId
+        // serverId->close server
+        // update xml
+        // restart
+        // update serverId->muleId
+        String infoType = getInfoType(taskEntity.getTask_id());
+        if (infoType.equalsIgnoreCase("22")){
+            taskMap.get(taskEntity.getTask_id()).closeTask();
+            taskMap.get(taskEntity.getTask_id()).removeTask();
+            AnaTask.rmFromMap(taskEntity.getTask_id());
+            return true;
+        }else {
+            String serverId = RedisUtils.redisPool.jedis(jedis -> {
+                return jedis.hget(MuleConfig.muleMonitor, taskEntity.getTask_id());
+            });
+            MuleTask muleTask = taskMap.get(serverId);
+            boolean serverHasFlows = false;
+            if (muleTask != null) {
+                muleTask.closeTask();
+                serverHasFlows = muleTask.removeTask();
+            }
+            if (serverHasFlows){
+                muleTask.executeTask();
+            }else {
+                rmFromMap(serverId);
+            }
+            return true;
+        }
     }
 
     public static void main(String[] args) throws Exception {
@@ -132,5 +180,19 @@ public class AnaTask {
         DatabaseProxy databaseProxy = new DatabaseProxy(databaseEntity);
         databaseProxy.initTask();
         databaseProxy.executeTask();
+    }
+
+    public static void restartMule(MuleTask muleTask) throws Exception {
+        synchronized (muleTask.getPort()){
+            MuleTask oldMule = AnaTask.getFromTaskMap(muleTask.getServerId());
+            //存在server
+            if (oldMule != null){
+                oldMule.closeTask();
+                AnaTask.rmFromMap(muleTask.getServerId());
+            }
+            //启动新服务
+            boolean ok = muleTask.executeTask();
+            addToTaskMap(muleTask.getServerId(), muleTask);
+        }
     }
 }

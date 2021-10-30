@@ -22,6 +22,7 @@ import java.util.List;
 import static com.redpill.CFManager.saveDocument;
 
 public class DatabaseWsProxy implements MuleTask{
+    public static final String TYPE = "T23";
     private static final String xmlTemplatePath = "databaseWs.xml";
     private static final String wsdlTemplatePath = "wsdlTemp.wsdl";
 
@@ -41,11 +42,14 @@ public class DatabaseWsProxy implements MuleTask{
     public MuleContext muleContext;
 
     private DatabaseEntity databaseEntity;
+    private String serverId;
 
     public DatabaseWsProxy(DatabaseEntity databaseEntity) {
         this.databaseEntity = databaseEntity;
-        this.xmlName = xmlPre + databaseEntity.getTask_id() + ".xml";
         this.wsdlName = xmlPre + databaseEntity.getTask_id() + ".wsdl";
+
+        this.serverId = getServerId();
+        this.xmlName = xmlPre + serverId + ".xml";
     }
 
     @Override
@@ -55,12 +59,13 @@ public class DatabaseWsProxy implements MuleTask{
             configBuilder = new SpringXmlConfigurationBuilder(xmlPath + xmlName);
             muleContext = defaultMuleContextFactory.createMuleContext(configBuilder);
             muleContext.start();
-            String id = muleContext.getConfiguration().getId();
-            String taskInfo = RedisUtils.redisPool.jedis(jedis -> {
-                jedis.hset(MuleConfig.muleMonitor + databaseEntity.getTask_id(), MuleConfig.hostIp, id);
+            String muleId = muleContext.getConfiguration().getId();
+            RedisUtils.redisPool.jedis(jedis -> {
+                jedis.hset(MuleConfig.muleMonitor, getTaskId(), serverId);
+                jedis.hset(MuleConfig.muleMonitor + serverId, MuleConfig.hostIp, muleId);
                 return null;
             });
-            AnaTask.addToTaskMap(databaseEntity.getTask_id(), this);
+            AnaTask.addToTaskMap(getServerId(), this);
             return true;
         } catch (Exception e) {
             LogTool.logInfo(1, databaseEntity.getTask_id() + " start error.");
@@ -76,7 +81,7 @@ public class DatabaseWsProxy implements MuleTask{
             try {
                 muleContext.stop();
                 RedisUtils.redisPool.jedis(jedis -> {
-                    jedis.del(MuleConfig.muleMonitor + databaseEntity.getTask_id());
+                    jedis.hdel(MuleConfig.muleMonitor, getTaskId());
                     return null;
                 });
             } catch (MuleException e) {
@@ -89,15 +94,70 @@ public class DatabaseWsProxy implements MuleTask{
     }
 
     @Override
-    public void removeTask() {
-        if (muleContext != null){
-            this.closeTask();
-        }
+    public boolean removeTask() {
         File file = new File(xmlPath + xmlName);
-        file.delete();
-        LogTool.logInfo(2, "rm task " + databaseEntity.getTask_id());
+        SAXBuilder saxBuilder = new SAXBuilder();
+        InputStream is = ClassLoader.getSystemResourceAsStream(xmlPath + xmlName);
+        Document document = null;
+        try {
+            document = saxBuilder.build(is);
+        } catch (JDOMException e) {
+            e.printStackTrace();
+            return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        Element rootElement = document.getRootElement();
+        List<Element> children = rootElement.getChildren();
+
+        for (Element child : children) {
+            if ((child.getName().equalsIgnoreCase("flow") || (child.getName().equalsIgnoreCase("generic-config ")))
+                    && child.getAttribute("name").getValue().equalsIgnoreCase(getTaskId())) {
+                rootElement.removeChild(child.getName(), child.getNamespace());
+            }
+        }
+        boolean haveFlows = false;
+        for (Element child : children) {
+            if (child.getName().equalsIgnoreCase("flow")){
+                haveFlows =  true;
+            }
+        }
+        if (haveFlows){
+            try {
+                saveDocument(document, file);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }else {
+            file.delete();
+            return false;
+        }
+
+        LogTool.logInfo(2, "rm task " + getTaskId());
+
+        return false;
     }
 
+    @Override
+    public String getTaskId() {
+        return databaseEntity.getTask_id();
+    }
+
+    @Override
+    public String getServerId() {
+        return TYPE + "-" + this.databaseEntity.getConfig().getHttp_port();
+    }
+
+    @Override
+    public Integer getPort() {
+        return this.databaseEntity.getConfig().getHttp_port();
+    }
+    @Override
+    public String getType() {
+        return TYPE;
+    }
     @Override
     public void initTask() {
         LogTool.logInfo(2, "init task " + databaseEntity.getTask_id());

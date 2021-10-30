@@ -6,6 +6,7 @@ import com.redpill.tool.LogTool;
 import com.redpill.tool.MuleConfig;
 import com.redpill.tool.RedisUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.cxf.ws.addressing.Names;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
@@ -25,6 +26,7 @@ import java.util.Map;
 import static com.redpill.CFManager.saveDocument;
 
 public class HttpToWsFlows implements MuleTask {
+    public static final String TYPE = "T12";
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();
     private SpringXmlConfigurationBuilder configBuilder;
 
@@ -38,20 +40,40 @@ public class HttpToWsFlows implements MuleTask {
     private String taskId;
     private String listenerConf;
     private String wsConf;
+    private HttpWsEntity httpWsEntity;
+    private String serverId;
 
+
+
+    @Override
     public String getTaskId() {
         return taskId;
+    }
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+    @Override
+    public String getServerId() {
+        return TYPE + "-" + Integer.valueOf(httpWsEntity.getFlows().get(0).getT_esb().getPort());
+    }
+
+    @Override
+    public Integer getPort() {
+        return Integer.valueOf(httpWsEntity.getFlows().get(0).getT_esb().getPort());
     }
 
     public void setTaskId(String taskId) {
         this.taskId = taskId;
     }
 
-    private HttpWsEntity httpWsEntity;
 
     public HttpToWsFlows(HttpWsEntity httpWsEntity) {
         this.httpWsEntity = httpWsEntity;
         this.taskId = httpWsEntity.getTask_id();
+
+        this.serverId = getServerId();
+        this.xmlName = xmlPre + serverId + ".xml";
     }
 
     @Override
@@ -59,7 +81,7 @@ public class HttpToWsFlows implements MuleTask {
         LogTool.logInfo(2, "init task " + httpWsEntity.getTask_id());
 
         List<HttpWsEntity.HwFlow> flows = httpWsEntity.getFlows();
-        xmlName = xmlPre + httpWsEntity.getTask_id() + ".xml";
+        xmlName = xmlPre + this.getServerId() + ".xml";
         try {
             initListenAndConsumer(flows.get(0));
         } catch (JDOMException e) {
@@ -68,9 +90,10 @@ public class HttpToWsFlows implements MuleTask {
             e.printStackTrace();
         }
 
+        //TODO：目前只接受一次任务发送一个flow的情况
         for (int i = 0; i < flows.size(); i++) {
             HttpWsEntity.HwFlow hwFlow = flows.get(i);
-            hwFlow.setFlowId(httpWsEntity.getTask_id() + "-flow-" + i);
+            hwFlow.setFlowId(httpWsEntity.getTask_id());
             String method = hwFlow.getT_esb().getMethod();
             String param_type = hwFlow.getT_esb().getParam_type();
             String xsltName = xsltPath + xsltPre + hwFlow.getFlowId()+".xslt";
@@ -193,12 +216,13 @@ public class HttpToWsFlows implements MuleTask {
             configBuilder = new SpringXmlConfigurationBuilder(xmlPath + xmlName);
             muleContext = defaultMuleContextFactory.createMuleContext(configBuilder);
             muleContext.start();
-            String id = muleContext.getConfiguration().getId();
+            String muleId = muleContext.getConfiguration().getId();
             RedisUtils.redisPool.jedis(jedis -> {
-                jedis.hset(MuleConfig.muleMonitor + taskId, MuleConfig.hostIp, id);
+                jedis.hset(MuleConfig.muleMonitor, taskId, serverId);
+                jedis.hset(MuleConfig.muleMonitor + serverId, MuleConfig.hostIp, muleId);
                 return null;
             });
-            AnaTask.addToTaskMap(taskId, this);
+            AnaTask.addToTaskMap(serverId, this);
             return true;
         } catch (Exception e) {
             LogTool.logInfo(1, taskId + " start error.");
@@ -214,7 +238,7 @@ public class HttpToWsFlows implements MuleTask {
             try {
                 muleContext.stop();
                 RedisUtils.redisPool.jedis(jedis -> {
-                    jedis.del(MuleConfig.muleMonitor + taskId);
+                    jedis.hdel(MuleConfig.muleMonitor, taskId);
                     return null;
                 });
             } catch (MuleException e) {
@@ -227,14 +251,57 @@ public class HttpToWsFlows implements MuleTask {
     }
 
     @Override
-    public void removeTask() {
-        if (muleContext != null){
-            this.closeTask();
-        }
+    public boolean removeTask() {
         File file = new File(xmlPath + xmlName);
-        file.delete();
+        SAXBuilder saxBuilder = new SAXBuilder();
+        InputStream is = ClassLoader.getSystemResourceAsStream(xmlPath + xmlName);
+        Document document = null;
+        try {
+            document = saxBuilder.build(is);
+        } catch (JDOMException e) {
+            e.printStackTrace();
+            return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        Element rootElement = document.getRootElement();
+        List<Element> children = rootElement.getChildren();
+        //remove xml
+        for (Element child : children) {
+            if ((child.getName().equalsIgnoreCase("flow") || (child.getName().equalsIgnoreCase("request-config")))
+                    && child.getAttribute("name").getValue().equalsIgnoreCase(taskId)) {
+                rootElement.removeChild(child.getName(), child.getNamespace());
+            }
+        }
+        //remove xslt
+        String xsltName = xsltPath + xsltPre + getTaskId()+".xslt";
+        File file1 = new File(xsltName);
+        if (file1.exists()){
+            file1.delete();
+        }
+
+        boolean haveFlows = false;
+        for (Element child : children) {
+            if (child.getName().equalsIgnoreCase("flow")){
+                haveFlows =  true;
+            }
+        }
+        if (haveFlows){
+            try {
+                saveDocument(document, file);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }else {
+            file.delete();
+            return false;
+        }
 
         LogTool.logInfo(2, "rm task " + taskId);
+
+        return false;
     }
 //    public String toWs() throws IOException, JDOMException {
 //        SAXBuilder saxBuilder = new SAXBuilder();
@@ -277,41 +344,60 @@ public class HttpToWsFlows implements MuleTask {
 //    }
 
     boolean initListenAndConsumer(HttpWsEntity.HwFlow hwFlow) throws JDOMException, IOException {
+        File file = new File(xmlPath + xmlName);
+        boolean exist = true;
+        if (!file.exists()){
+            file.createNewFile();
+            exist = false;
+        }
+
         SAXBuilder saxBuilder = new SAXBuilder();
-        InputStream is = ClassLoader.getSystemResourceAsStream(xmlTemplatePath);
+        InputStream is = null;
+        if(exist){
+            is = ClassLoader.getSystemResourceAsStream(xmlPath + xmlName);
+        }else{
+            is = ClassLoader.getSystemResourceAsStream(xmlTemplatePath);
+        }
         Document document = saxBuilder.build(is);
         Element rootElement = document.getRootElement();
         List<Element> children = rootElement.getChildren();
-        listenerConf = httpWsEntity.getTask_id() + "-http-conf";
-        wsConf = httpWsEntity.getTask_id() + "-ws-conf";
 
-        for (Element child : children) {
-            if (child.getName().equals("listener-config")) {
-                child.setAttribute("name", listenerConf);
-                child.getAttribute("host").setValue(hwFlow.getT_esb().getIp_address());
-                child.getAttribute("port").setValue(String.valueOf(hwFlow.getT_esb().getPort()));
-            } else if (child.getName().equals("consumer-config")) {
-                String serviceAddress = "http://" + hwFlow.getS_esb().getIp_address() + ":" + hwFlow.getS_esb().getPort() + hwFlow.getS_esb().getPath();
-                child.setAttribute("name", wsConf);
-                child.getAttribute("service").setValue(hwFlow.getS_esb().getWs_service());
-                child.getAttribute("port").setValue(hwFlow.getS_esb().getWs_port());
-                child.getAttribute("serviceAddress").setValue(serviceAddress);
-                if (hwFlow.getS_esb().getWsdl().startsWith("http://")){
-                }else {
-                    hwFlow.getS_esb().setWsdl("http://" + hwFlow.getS_esb().getWsdl());
-                }
-                child.getAttribute("wsdlLocation").setValue(hwFlow.getS_esb().getWsdl());
-            }
+        listenerConf = getServerId() + "-in";
+        wsConf = httpWsEntity.getTask_id() + "-out";
+
+        Namespace http = Namespace.getNamespace("http", "http://www.mulesoft.org/schema/mule/http");
+        Namespace aa = Namespace.getNamespace("", "http://www.mulesoft.org/schema/mule/core");
+        Namespace doc = Namespace.getNamespace("doc", "http://www.mulesoft.org/schema/mule/documentation");
+        Namespace ws = Namespace.getNamespace("ws", "http://www.mulesoft.org/schema/mule/ws");
+
+        if (!exist){
+            // 创建listener config
+            Element listenerCon = new Element("listener-config", http);
+            listenerCon.setAttribute("name", listenerConf);
+            listenerCon.setAttribute("host", "0.0.0.0");
+            listenerCon.setAttribute("port", String.valueOf(getPort()));
+            listenerCon.setAttribute("name", listenerConf+" configuration", doc);
+            rootElement.addContent(0, listenerCon);
         }
-        File file = new File(xmlPath+xmlName);
-        if (!file.exists()){
-            file.createNewFile();
+        //创建 request-config
+        Element consumerConf = new Element("consumer-config", ws);
+        String serviceAddress = "http://" + hwFlow.getS_esb().getIp_address() + ":" + hwFlow.getS_esb().getPort() + hwFlow.getS_esb().getPath();
+        consumerConf.setAttribute("name", wsConf);
+        consumerConf.getAttribute("service").setValue(hwFlow.getS_esb().getWs_service());
+        consumerConf.getAttribute("port").setValue(hwFlow.getS_esb().getWs_port());
+        consumerConf.getAttribute("serviceAddress").setValue(serviceAddress);
+        if (hwFlow.getS_esb().getWsdl().startsWith("http://")){
+        }else {
+            hwFlow.getS_esb().setWsdl("http://" + hwFlow.getS_esb().getWsdl());
         }
+        consumerConf.getAttribute("wsdlLocation").setValue(hwFlow.getS_esb().getWsdl());
+        rootElement.addContent(consumerConf);
         saveDocument(document, file);
         return true;
     }
     public String getToWs(HttpWsEntity.HwFlow hwFlow, String xsltName) throws IOException, JDOMException {
-        FileReader fileReader = new FileReader(new File(xmlPath + xmlName));
+        File file1 = new File(xmlPath + xmlName);
+        FileReader fileReader = new FileReader(file1);
         SAXBuilder saxBuilder = new SAXBuilder();
         Document document = saxBuilder.build(fileReader);
         fileReader.close();
@@ -329,10 +415,12 @@ public class HttpToWsFlows implements MuleTask {
 
         Element flow = new Element("flow", dft);
         flow.setAttribute("name", hwFlow.getFlowId());
+
         Element httpLtn = new Element("listener", http)
                 .setAttribute("config-ref", httpConfName)
                 .setAttribute("path", hwFlow.getT_esb().getPath())
                 .setAttribute("name", "http", doc);
+
         httpLtn.setAttribute("allowedMethods", hwFlow.getT_esb().getMethod());
         flow.addContent(httpLtn);
         flow.addContent(new Element("set-payload", dft)

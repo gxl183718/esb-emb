@@ -19,16 +19,17 @@ public class MicroserviceMuleApp {
 //        SpringXmlConfigurationBuilder configBuilder = new SpringXmlConfigurationBuilder("httpGetToWsFlows.xml");
 //        MuleContext muleContext = muleContextFactory.createMuleContext(configBuilder);
 //        MuleContext muleContext = muleContextFactory.createMuleContext("conf/cfTem/JsonToWS.xml");
-//        MuleContext muleContext = muleContextFactory.createMuleContext("conf/cfTem/httpGetToWsTem.xml");
-        MuleContext muleContext = muleContextFactory.createMuleContext(
-                "conf/flow/jolokia-task1.xml");
+        MuleContext muleContext1 = muleContextFactory.createMuleContext("httpPathTem.xml");
+        MuleContext muleContext2 = muleContextFactory.createMuleContext("jolokia.xml");
+
 //        MuleContext muleContext = muleContextFactory.createMuleContext(args[0]);
-        muleContext.start();
-        System.out.println("is starting");
+        muleContext1.start();
+        muleContext2.start();
+        System.out.println(muleContext1.getConfiguration().getId() + " is starting");
         Thread.sleep(1000000);
         System.out.println("stopping mule server");
-        muleContext.stop();
-        muleContext.dispose();
+//        muleContext1.stop();
+//        muleContext1.dispose();
 //
     }
 

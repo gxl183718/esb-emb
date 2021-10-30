@@ -17,18 +17,15 @@ public class HttpProxyTest {
 //        httpProxyTest();//
 //        wsProxyTest();//ok.2
 //        httpPathProxyTest();//ok.2
-        getToWs();//
 //        jsonToWs();
 //        formToWs();
     }
     static void httpPathProxyTest(){
         List<PathProxy.HttpFlow> list = new ArrayList<>();
         PathProxy.HttpFlow httpFlow1 = new PathProxy.HttpFlow("f1", "/haha", "/test/haha", "*");
-        PathProxy.HttpFlow httpFlow2 = new PathProxy.HttpFlow("f2", "/hehe", "/test/hehe", "*");
         list.add(httpFlow1);
-        list.add(httpFlow2);
 
-        PathProxy pathProxy = new PathProxy("hpp-001", list, "localhost", 20099, "localhost", 10012);
+        PathProxy pathProxy = new PathProxy("hpp-001", list, "localhost", 20099, "localhost", 10002);
 
         pathProxy.initTask();
         pathProxy.executeTask();
@@ -36,12 +33,6 @@ public class HttpProxyTest {
 
     }
 
-    static void httpProxyTest(){
-        HttpProxy httpProxy = new HttpProxy("hp-test-001", "0.0.0.0", 10001, "/wodege",
-                "127.0.0.1", 10012, "/");
-        httpProxy.initTask();
-        httpProxy.executeTask();
-    }
     static void wsProxyTest(){
 
         List<WebServiceProxy.WsFlow> flows = new ArrayList<>();
@@ -59,31 +50,5 @@ public class HttpProxyTest {
 
         webServiceProxy.initTask();
         webServiceProxy.executeTask();
-    }
-    static void getToWs(){
-        Map<String, String> map = new HashMap<>();
-        map.put("age","age");
-        HttpGetToWs toWs = new HttpGetToWs("hgtw-test-001", "0.0.0.0", 10210, "/test",
-                "WBTestInterfaceImplService", "WBTestInterfaceImplPort", "http://localhost:8088/cxf/webServices",
-                "http://localhost:8088/cxf/webServices?WSDL", "sayGodBye", "gao","http://www.gao.xiao.com",
-                map, true);
-        toWs.initTask();
-        toWs.executeTask();
-    }
-    static void jsonToWs(){
-        JsonToWs toWs = new JsonToWs("jtw-test-001", "0.0.0.0", 10210, "/test",
-                "WBTestInterfaceImplService", "WBTestInterfaceImplPort", "http://localhost:8088/cxf/webServices",
-                "http://localhost:8088/cxf/webServices?WSDL", "sayGodBye",
-                "gao","http://www.gao.xiao.com", true);
-        toWs.initTask();
-        toWs.executeTask();
-    }
-    static void formToWs(){
-        HttpPostToWs toWs = new HttpPostToWs("ftw-test-001", "0.0.0.0", 10210, "/test",
-                "WBTestInterfaceImplService", "WBTestInterfaceImplPort", "http://localhost:8088/cxf/webServices",
-                "http://localhost:8088/cxf/webServices?WSDL", "sayGodBye",
-                "gao","http://www.gao.xiao.com", true);
-        toWs.initTask();
-        toWs.executeTask();
     }
 }

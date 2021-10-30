@@ -26,6 +26,7 @@ import java.util.List;
 import static com.redpill.CFManager.saveDocument;
 
 public class WebServiceProxy implements MuleTask {
+    public static final String TYPE = "T22";
     private static final String xmlTemplatePath = "wsProxyTem.xml";
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();
     private static final String xmlPre = "WSP-";
@@ -166,13 +167,32 @@ public class WebServiceProxy implements MuleTask {
     }
 
     @Override
-    public void removeTask() {
+    public boolean removeTask() {
         if (muleContext != null){
             this.closeTask();
         }
         File file = new File(xmlPath + xmlName);
         file.delete();
         LogTool.logInfo(2, "rm task " + taskId);
+        return true;
+    }
+
+    @Override
+    public String getTaskId() {
+        return this.taskId;
+    }
+    @Override
+    public String getType() {
+        return TYPE;
+    }
+    @Override
+    public String getServerId() {
+        return null;
+    }
+
+    @Override
+    public Integer getPort() {
+        return null;
     }
 
     public String wsProxy() throws IOException, JDOMException {
@@ -191,8 +211,9 @@ public class WebServiceProxy implements MuleTask {
             rootElement.addContent(i, wsd);
         }
         File file = new File(xmlPath+xmlName);
-        if (!file.exists())
+        if (!file.exists()){
             file.createNewFile();
+        }
         saveDocument(document, file);
         return xmlPath+xmlName;
     }
