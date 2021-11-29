@@ -5,6 +5,7 @@ import com.redpill.tool.FileTool;
 import com.redpill.tool.LogTool;
 import com.redpill.tool.MuleConfig;
 import com.redpill.tool.RedisUtils;
+import org.apache.commons.io.FileUtils;
 import org.jdom.*;
 import org.jdom.input.SAXBuilder;
 import org.mule.api.MuleContext;
@@ -14,35 +15,34 @@ import org.mule.api.lifecycle.InitialisationException;
 import org.mule.config.spring.SpringXmlConfigurationBuilder;
 import org.mule.context.DefaultMuleContextFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
 import static com.redpill.CFManager.saveDocument;
 
+/**
+ * restful api proxy
+ * @author labigthree
+ */
 public class PathProxy implements MuleTask{
     private static final String TYPE = "T11";
-    private static final String xmlTemplatePath = "httpPathTem.xml";
-    private static final String xmlPre = "HPP-";
+    private static final String TEMPLATE_FILE = "httpPathTem.xml";
+    private static final String DATA_FILE_PRE = "HPP-";
     private static final DefaultMuleContextFactory defaultMuleContextFactory = new DefaultMuleContextFactory();
+
     private String xmlName;
     private String xmlPath = (MuleConfig.dataPath.endsWith("/")?MuleConfig.dataPath:MuleConfig.dataPath+"/")+ "flow/";
     private SpringXmlConfigurationBuilder configBuilder;
     public String taskId;
-    public List<String> otherTaskIds = new ArrayList<>();
     public MuleContext muleContext;
     private List<HttpFlow> flows;
-    private String listenerHost;
     private Integer listenerPort;
+    private String listenerHost;
     private String requestHost;
     private Integer requestPort;
     private String serverId;
-    public Integer getListenerPort(){
-        return this.listenerPort;
-    }
+
     @Override
     public String getServerId(){
         return TYPE+"-"+this.listenerPort;
@@ -108,30 +108,45 @@ public class PathProxy implements MuleTask{
         this.requestHost = requestHost;
         this.requestPort = requestPort;
         this.serverId = getServerId();
-        this.xmlName = xmlPre + serverId + ".xml";
+        this.xmlName = DATA_FILE_PRE + serverId + ".xml";
     }
 
     @Override
     public boolean executeTask() {
-        LogTool.logInfo(2, "execute task " + taskId);
+        LogTool.logInfo(2, "Execute task " + taskId);
         try {
             configBuilder = new SpringXmlConfigurationBuilder(xmlPath + xmlName);
             muleContext = defaultMuleContextFactory.createMuleContext(configBuilder);
             muleContext.start();
-            String muleId = muleContext.getConfiguration().getId();
-            RedisUtils.redisPool.jedis(jedis -> {
-                jedis.hset(MuleConfig.muleMonitor, taskId, serverId);
-                jedis.hset(MuleConfig.muleMonitor + serverId, MuleConfig.hostIp, muleId);
-                return null;
-            });
-            AnaTask.addToTaskMap(serverId, this);
-            return true;
+            LogTool.logInfo(2, "Server starting.");
         } catch (Exception e) {
-            LogTool.logInfo(1, taskId + " start error.");
+            LogTool.logInfo(1, taskId + " start error, use backup file to start.");
             e.printStackTrace();
-            removeTask();
+            backupToHistory(xmlName);
+            return false;
         }
-        return false;
+        String muleId = muleContext.getConfiguration().getId();
+        RedisUtils.redisPool.jedis(jedis -> {
+            jedis.hset(MuleConfig.muleMonitor, taskId, serverId);
+            jedis.hset(MuleConfig.muleMonitor + serverId, MuleConfig.hostIp, muleId);
+            return null;
+        });
+        AnaTask.addToTaskMap(serverId, this);
+        return true;
+    }
+    void backupToHistory(String xmlPath){
+        try {
+            File file = new File(xmlPath + xmlName);
+            file.delete();
+            File file1 = new File(xmlPath + xmlName + ".backup");
+            file1.renameTo(new File(xmlPath + xmlName));
+            //重新从磁盘load
+            MuleLoad muleLoad = new MuleLoad(xmlName);
+            muleLoad.initTask();
+            muleLoad.executeTask();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -153,13 +168,10 @@ public class PathProxy implements MuleTask{
     }
 
     @Override
-    public boolean removeTask() {
-//        if (muleContext != null){
-//            this.closeTask();
-//        }
-        File file = new File(xmlPath + xmlName);
+    public boolean removeTask() throws FileNotFoundException {
         SAXBuilder saxBuilder = new SAXBuilder();
-        InputStream is = ClassLoader.getSystemResourceAsStream(xmlPath + xmlName);
+        File file = new File(xmlPath + xmlName);
+        InputStream is = new FileInputStream(xmlPath + xmlName);
         Document document = null;
         try {
             document = saxBuilder.build(is);
@@ -172,9 +184,10 @@ public class PathProxy implements MuleTask{
         }
         Element rootElement = document.getRootElement();
         List<Element> children = rootElement.getChildren();
+        //remove flow mapped this
         for (Element child : children) {
-            if ((child.getName().equalsIgnoreCase("flow") || (child.getName().equalsIgnoreCase("request-config")))
-            && child.getAttribute("name").getValue().equalsIgnoreCase(taskId)) {
+            if ((child.getName().equalsIgnoreCase("flow"))
+            && child.getAttributeValue("name").equalsIgnoreCase(taskId)) {
                 rootElement.removeChild(child.getName(), child.getNamespace());
             }
         }
@@ -195,9 +208,7 @@ public class PathProxy implements MuleTask{
             file.delete();
             return false;
         }
-
         LogTool.logInfo(2, "rm task " + taskId);
-
         return false;
     }
 
@@ -233,16 +244,13 @@ public class PathProxy implements MuleTask{
                 fileBackup.createNewFile();
                 FileTool.copyFile(xmlPath + xmlName, backupFileName);
             }
-
         }
-
         SAXBuilder saxBuilder = new SAXBuilder();
         InputStream is = null;
         if(exist){
-            //备份旧文件
             is = new FileInputStream(xmlPath + xmlName);
         }else{
-            is = ClassLoader.getSystemResourceAsStream(xmlTemplatePath);
+            is = ClassLoader.getSystemResourceAsStream(TEMPLATE_FILE);
         }
         Document document = saxBuilder.build(is);
         Element rootElement = document.getRootElement();
@@ -261,19 +269,20 @@ public class PathProxy implements MuleTask{
             listenerConf.setAttribute("name", listenerConfName+" configuration", doc);
             rootElement.addContent(0, listenerConf);
         }
-        String conf_name = null;
+        String request_conf_name = null;
         boolean haveConf = false;
+        //when there is a request-config with the same name,
         for (Element child : children) {
             if (child.getName().equals("request-config")) {
-                if (child.getAttribute("host").equals(requestHost)
-                        && child.getAttribute("port").equals(String.valueOf(requestPort))){
-                    conf_name = child.getAttributeValue("name");
+                if (child.getAttributeValue("host").equals(requestHost)
+                        && child.getAttributeValue("port").equals(String.valueOf(requestPort))){
+                    request_conf_name = child.getAttributeValue("name");
                     haveConf = true;
                     break;
                 }
             }
         }
-        //创建 request-config
+        //create request-config if not exist
         if (!haveConf){
             Element requestConf = new Element("request-config", http);
             requestConf.setAttribute("name", requestConfName);
@@ -284,10 +293,9 @@ public class PathProxy implements MuleTask{
             }
             requestConf.setAttribute("name", requestConfName+" configuration", doc);
             rootElement.addContent(1, requestConf);
-            conf_name = requestConfName;
+            request_conf_name = requestConfName;
         }
-
-        //TODO:add flow
+        //create flow
         for (int i = 0; i < flows.size(); i++) {
             Element wsd = new Element( "flow", aa);
             wsd.setAttribute("name", flows.get(i).flowId);
@@ -302,16 +310,20 @@ public class PathProxy implements MuleTask{
             listener.setAttribute("name", "HTTP", http);
             wsd.addContent(listener);
             Element request = new Element("request", http);
-            request.setAttribute("config-ref", conf_name);
+            request.setAttribute("config-ref", request_conf_name);
             request.setAttribute("path", flows.get(i).requestPath + "#[message.inboundProperties['http.request.path'].substring(message.inboundProperties['http.listener.path'].length()-2)]");
             request.setAttribute("name", "HTTP", http);
             request.setAttribute("method", "#[message.inboundProperties['http.method']]");
             Element builder = new Element("request-builder", http);
             builder.addContent(new Element("query-params", http).setAttribute("expression", "message.inboundProperties.'http.query.params'"));
             //传递header
-            builder.addContent(new Element("header", http).setAttribute("headerName", "authorization").setAttribute("value", "#[message.inboundProperties.'authorization']"));
+            for (String header : MuleConfig.headers) {
+                builder.addContent(new Element("header", http).setAttribute("headerName", header).setAttribute("value", "#[message.inboundProperties.'"+header+"']"));
+            }
+            if (MuleConfig.headers.size() <= 0) {
+                builder.addContent(new Element("header", http).setAttribute("headerName", "authorization").setAttribute("value", "#[message.inboundProperties.'authorization']"));
+            }
 //            builder.addContent(new Element("headers", http).setAttribute("expression", "message.inboundProperties"));
-
             request.addContent(builder);
             wsd.addContent(request);
             rootElement.addContent( wsd);
